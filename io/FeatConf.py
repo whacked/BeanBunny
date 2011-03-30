@@ -24,6 +24,8 @@ class FeatConf:
         self.dc_index = {}
         entrypattern = re.compile(r'^set\s+(\S+)\s+(.*)$')
 
+        self.ls_groupmem = []
+
         commentbuf = []
         for line in fl_input.readlines():
             line = line.strip()
@@ -43,6 +45,60 @@ class FeatConf:
 
     def __str__(self):
         return "\n\n".join([str(fe) for fe in self.ls_entry])
+
+    def remove_feat_input(self, p_match):
+        """remove from the 4D or feat directory input list, and rebuild output structure
+        this is a very dumb function and only assumes 1 group type and 1 EV type!
+        
+        make sure your fsf fits this use case!
+        
+        Arguments:
+        - `p_match`: the regex to match
+        """
+        ls_feat_files = []
+        idx, end = 0, len(self.ls_entry)
+        while idx < end:
+            fe = self.ls_entry[idx]
+            if any(map(lambda search: fe.name.startswith(search),
+                       ["feat_files",
+                        "fmri(evg",
+                        "fmri(groupmem"])):
+                # exclude anything that matches from the new buffer
+                if fe.name.startswith("feat_files"):
+                    if not re.match(p_match, fe.value):
+                        ls_feat_files.append(fe.value)
+                    else:
+                        print "removing: " + fe.value
+                del self.dc_index[fe.name]
+                del self.ls_entry[idx]
+                end -= 1
+            else:
+                idx += 1
+        
+        # rebuild
+        idx = 0
+        while idx < len(self.ls_entry):
+            fe = self.ls_entry[idx]
+            make_fe = None
+            if fe.name == "fmri(confoundevs)":
+                make_fe = lambda num, feat_file: FeatEntry("feat_files(%s)" % num, feat_file, "4D AVW data or FEAT directory (%s)" % num)
+            elif fe.name == "fmri(level2orth)":
+                make_fe = lambda num, feat_file: FeatEntry("fmri(evg%s.1)" % num, "1.0", "Higher-level EV value for EV 1 and input %s" % num)
+            elif fe.name == "fmri(con_mode_old)":
+                make_fe = lambda num, feat_file: FeatEntry("fmri(groupmem.%s)" % num, "1", "Group membership for input %s" % num)
+
+            if make_fe:
+                num_feat_file = 0
+                for feat_file in ls_feat_files:
+                    num_feat_file += 1
+                    fenew = make_fe(num_feat_file, feat_file)
+                    self.dc_index[fenew.name] = fenew
+                    self.ls_entry.insert(idx, fenew)
+                    idx += 1
+            idx += 1
+            
+            self.dc_index["fmri(npts)"].value = len(ls_feat_files)
+            self.dc_index["fmri(multiple)"].value = len(ls_feat_files)
 
 if __name__ == "__main__":
     testfile = "/Users/Shared/MRIDATA/analysis-FSL/OC/design/level1/pre.fsf"
