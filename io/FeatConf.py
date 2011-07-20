@@ -16,9 +16,30 @@ class FeatEntry:
         
 
 class FeatConf:
+    def __getitem__(self, key):
+        return self.dc_index[key]
+
+    def __setitem__(self, key, val):
+        if key not in self.dc_index:
+            print "WARNING: setting new item [%s]" % key
+        self.dc_index[key].value = val
+
+    def __delitem__(self, key):
+        idx = self.index(key)
+        fe = self.dc_index[key]
+        del self.ls_entry[idx]
+        del self.dc_index[key]
+        return fe
+
     def __init__(self, fl_input):
         if type(fl_input) == types.StringType:
-            fl_input = open(fl_input)
+            if len(fl_input) < 255 and os.path.exists(fl_input):
+                ls_line = open(fl_input).readlines()
+            else:
+                ls_line = fl_input.split("\n")
+                ls_line[-1] += "\n"
+        else:
+            ls_line = fl_input.readlines()
 
         self.ls_entry = []
         self.dc_index = {}
@@ -27,7 +48,7 @@ class FeatConf:
         self.ls_groupmem = []
 
         commentbuf = []
-        for line in fl_input.readlines():
+        for line in ls_line:
             line = line.strip()
             if len(line) is 0 and len(commentbuf) is 0:
                 continue
@@ -45,6 +66,23 @@ class FeatConf:
 
     def __str__(self):
         return "\n\n".join([str(fe) for fe in self.ls_entry])
+
+    def complain_if_exists(self, fe):
+        if fe.name in self.dc_index:
+            raise Exception("this entry already exists")
+
+    def append(self, fe):
+        self.complain_if_exists(fe)
+        self.ls_entry.append(fe)
+        self.dc_index[fe.name] = fe
+
+    def index(self, key):
+        return [fe.name for fe in self.ls_entry].index(key)
+
+    def insert(self, idx, fe):
+        self.complain_if_exists(fe)
+        self.ls_entry.insert(idx, fe)
+        self.dc_index[fe.name] = fe
 
     def remove_feat_input(self, p_match):
         """remove from the 4D or feat directory input list, and rebuild output structure
@@ -97,8 +135,8 @@ class FeatConf:
                     idx += 1
             idx += 1
             
-            self.dc_index["fmri(npts)"].value = len(ls_feat_files)
-            self.dc_index["fmri(multiple)"].value = len(ls_feat_files)
+        self.dc_index["fmri(npts)"].value = len(ls_feat_files)
+        self.dc_index["fmri(multiple)"].value = len(ls_feat_files)
 
 if __name__ == "__main__":
     testfile = "/Users/Shared/MRIDATA/analysis-FSL/OC/design/level1/pre.fsf"
