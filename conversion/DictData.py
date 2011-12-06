@@ -18,3 +18,15 @@ class DataSet(object):
     def datarow(self):
         return [self.__dict__.get(k, "NA") for k in self.__class__.headerrow()]
   
+
+class StrictDataSet(DataSet):
+    dc_header = {}
+    def __init__(self, **kw):
+        already_initialized = self.__class__.dc_header and True or False
+        if not kw:
+            raise Exception("empty!")
+        for k, v in kw.items():
+            if already_initialized and k not in self.__class__.dc_header:
+                raise Exception("undefined key [%s]" % k)
+            self[k] = v
+    
