@@ -73,7 +73,7 @@ class SmartDataRowMaker(object):
             if key in self._dctransform:
                 if self._dctransform[key] is None:
                     continue
-                mkey, _ = self._dctransform[key](key, val)
+                mkey, val = self._dctransform[key](key, val)
             else:
                 mkey = key
             if type(val) == unicode:
