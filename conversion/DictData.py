@@ -1,4 +1,4 @@
-import csv
+import csv, copy
 
 class DataSet(object):
     dc_header = {}
@@ -56,12 +56,12 @@ class SmartDataRowMaker(object):
         """
         self._dctransform = {}
         if dctransform:
-            for k, v in dctransform.items():
-                if type(v) == str:
-                    self._dctransform[k] = v
+            for k0, k1 in dctransform.items():
+                if type(k1) == str:
+                    self._dctransform[k0] = (lambda transformed: lambda inkey, inval: (transformed, inval))(k1)
                 # placeholder
                 else:
-                    self._dctransform[k] = v
+                    self._dctransform[k0] = k1
         self._dcsheet = {'union': []}
         if collapse_rule != 'union':
             raise Exception("rule '' %s '' not yet implemented" % collapse_rule)
@@ -69,14 +69,17 @@ class SmartDataRowMaker(object):
         
     def addrow(self, dc):
         rowcopy = {}
-        for key in dc:
+        for key, val in dc.items():
             if key in self._dctransform:
-                mkey = self._dctransform[key]
+                if self._dctransform[key] is None:
+                    continue
+                mkey, _ = self._dctransform[key](key, val)
             else:
                 mkey = key
-            if mkey is None:
-                continue
-            rowcopy[mkey] = dc[key]
+            if type(val) == unicode:
+                rowcopy[mkey] = val.encode("utf-8")
+            else:
+                rowcopy[mkey] = val
         tp_header = tuple(sorted(rowcopy.keys()))
         if tp_header not in self._dcsheet:
             self._dcsheet[tp_header] = []
