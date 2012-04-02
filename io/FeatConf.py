@@ -164,5 +164,5 @@ if __name__ == "__main__":
     elif "-c" in sys.argv:
         res = FC.find(r'.*conname_real.*')
         maxlenk = max(map(len, res.keys()))
-        for k, v in res.items():
+        for k, v in sorted(res.items()):
             print " " + k.ljust(maxlenk + 1) + ": " + v
