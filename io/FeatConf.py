@@ -67,6 +67,14 @@ class FeatConf:
     def __str__(self):
         return "\n\n".join([str(fe) for fe in self.ls_entry])
 
+    def find(self, matcher):
+        p = re.compile(matcher)
+        rtn = {}
+        for k in self.dc_index.keys():
+            if p.match(k):
+                rtn[k] = self[k]
+        return rtn
+
     def complain_if_exists(self, fe):
         if fe.name in self.dc_index:
             raise Exception("this entry already exists")
@@ -139,8 +147,22 @@ class FeatConf:
         self.dc_index["fmri(multiple)"].value = len(ls_feat_files)
 
 if __name__ == "__main__":
-    testfile = "/Users/Shared/MRIDATA/analysis-FSL/OC/design/level1/pre.fsf"
-    FC = FeatConf(testfile)
-    open("testout.fsf", "w").write(str(FC))
-    print len(str(FC)), len(open(testfile).read())
-    print str(FC) == open(testfile).read()
+    
+    if len(sys.argv) < 2:
+        print """USAGE: FeatConf.py <OPTION> <featfile.fsf>
+        -c    list contrasts
+        -p    print everything (echo... to test output)
+        """
+    fsf_file = sys.argv[-1]
+    if not os.path.exists(fsf_file):
+        print "the file does not exist!"
+        sys.exit(1)
+
+    FC = FeatConf(fsf_file)
+    if "-p" in sys.argv:
+        print str(FC)
+    elif "-c" in sys.argv:
+        res = FC.find(r'.*conname_real.*')
+        maxlenk = max(map(len, res.keys()))
+        for k, v in res.items():
+            print " " + k.ljust(maxlenk + 1) + ": " + v
