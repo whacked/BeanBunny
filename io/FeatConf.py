@@ -163,6 +163,9 @@ if __name__ == "__main__":
         print str(FC)
     elif "-c" in sys.argv:
         res = FC.find(r'.*conname_real.*')
+        def sortfn(t1, t2):
+            getnum = lambda s: int(s.split(".")[-1][:-1])
+            return getnum(t1[0]) > getnum(t2[0]) and 1 or -1
         maxlenk = max(map(len, res.keys()))
-        for k, v in sorted(res.items()):
+        for k, v in sorted(res.items(), sortfn):
             print " " + k.ljust(maxlenk + 1) + ": " + v
