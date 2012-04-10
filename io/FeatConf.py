@@ -158,14 +158,20 @@ if __name__ == "__main__":
         print "the file does not exist!"
         sys.exit(1)
 
+    def sort_by_dotnumber(t1, t2):
+        getnum = lambda s: int(s.split(".")[-1][:-1])
+        return getnum(t1[0]) > getnum(t2[0]) and 1 or -1
+
     FC = FeatConf(fsf_file)
     if "-p" in sys.argv:
         print str(FC)
-    elif "-c" in sys.argv:
-        res = FC.find(r'.*conname_real.*')
-        def sortfn(t1, t2):
-            getnum = lambda s: int(s.split(".")[-1][:-1])
-            return getnum(t1[0]) > getnum(t2[0]) and 1 or -1
-        maxlenk = max(map(len, res.keys()))
-        for k, v in sorted(res.items(), sortfn):
-            print " " + k.ljust(maxlenk + 1) + ": " + v
+    else:
+        res = None
+        elif "-c" in sys.argv:
+            res = FC.find(r'.*conname_real.*')
+        elif "-i" in sys.argv:
+            res = FC.find(r'.*feat_files.*')
+        if res:
+            maxlenk = max(map(len, res.keys()))
+            for k, v in sorted(res.items(), sort_by_dotnumber):
+                print " " + k.ljust(maxlenk + 1) + ": " + v
