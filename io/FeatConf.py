@@ -159,7 +159,10 @@ if __name__ == "__main__":
         sys.exit(1)
 
     def sort_by_dotnumber(t1, t2):
-        getnum = lambda s: int(s.split(".")[-1][:-1])
+        p = re.compile(r'\D*(\d+)\D*')
+        def getnum(s):
+            m = p.match(s)
+            return m and int(m.group(1)) or 0
         return getnum(t1[0]) > getnum(t2[0]) and 1 or -1
 
     FC = FeatConf(fsf_file)
