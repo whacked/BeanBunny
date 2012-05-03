@@ -147,12 +147,23 @@ class FeatConf:
         self.dc_index["fmri(multiple)"].value = len(ls_feat_files)
 
 if __name__ == "__main__":
+
+    from optparse import OptionParser
+
+    parser = OptionParser()
+    parser.add_option("-c", "--contrast_list", action="store_true",
+            help = "list contrasts")
+    parser.add_option("-i", "--input_list", action="store_true",
+            help = "list inputs")
+    parser.add_option("-p", "--print_everything", action="store_true",
+            help = "print everything (echo... to test output)")
+    (option, args) = parser.parse_args()
     
     if len(sys.argv) < 2:
-        print """USAGE: FeatConf.py <OPTION> <featfile.fsf>
-        -c    list contrasts
-        -p    print everything (echo... to test output)
-        """
+        print """USAGE: FeatConf.py <OPTION> <featfile.fsf>"""
+        parser.print_help()
+        sys.exit()
+
     fsf_file = sys.argv[-1]
     if not os.path.exists(fsf_file):
         print "the file does not exist!"
@@ -166,13 +177,13 @@ if __name__ == "__main__":
         return getnum(t1[0]) > getnum(t2[0]) and 1 or -1
 
     FC = FeatConf(fsf_file)
-    if "-p" in sys.argv:
+    if options.print_everything:
         print str(FC)
     else:
         res = None
-        if "-c" in sys.argv:
+        if options.contrast_list:
             res = FC.find(r'.*conname_real.*')
-        elif "-i" in sys.argv:
+        elif options.input_list:
             res = FC.find(r'.*feat_files.*')
         if res:
             maxlenk = max(map(len, res.keys()))
