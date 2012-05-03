@@ -157,7 +157,7 @@ if __name__ == "__main__":
             help = "list inputs")
     parser.add_option("-p", "--print_everything", action="store_true",
             help = "print everything (echo... to test output)")
-    (option, args) = parser.parse_args()
+    (options, args) = parser.parse_args()
     
     if len(sys.argv) < 2:
         print """USAGE: FeatConf.py <OPTION> <featfile.fsf>"""
