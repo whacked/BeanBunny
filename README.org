@@ -1,1 +1,30 @@
 assorted python files to interface with assorted file formats
+
+* BeanBunny.io.FeatConf
+
+  simple reader for .fsf files to replace repeated =grep=ing
+
+  works as a module and from command line:
+
+  - python -mBeanBunny.io.FeatConf -i design.fsf # lists feat_files
+  - python -mBeanBunny.io.FeatConf -c design.fsf # lists contrasts
+  - python -mBeanBunny.io.FeatConf -p design.fsf # should output the same as cat design.fsf, to test equivalence
+
+** caveats
+
+   it's dumb in that quoted strings don't get quote-stripped
+
+* BeanBunny.io.DicomInfo
+
+  simple class to hold dicom run information, mostly for nipy use
+
+* BeanBunny.io.XOJFile
+
+  xournal 0.4.5 file writer?
+
+* BeanBunny.io.JAJFile
+
+  Jarnal (.jaj) file extractor
+
+  used with XOJFile in jaj2xoj converter
+
