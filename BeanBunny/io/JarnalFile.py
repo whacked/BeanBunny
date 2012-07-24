@@ -9,6 +9,8 @@ class JAJFile:
         if not zipfile.is_zipfile(jaj_filepath):
             raise Exception("I need a zipfile")
     
+        self.filepath = jaj_filepath
+        self.filename = os.path.split(jaj_filepath)[0]
         self.zf = zipfile.ZipFile(jaj_filepath, 'r')
 
         self.background_pdf_filename = None
@@ -49,5 +51,44 @@ class JAJFile:
             os.unlink(os.path.join(self.dir_tmp, filename))
         os.rmdir(self.dir_tmp)
         
+    # old stuff from another class that did something similar, possibly
+    # redundant. shoehorned to fit here, may not work
+    def deflate(self):
+        if not self.dir_tmp:
+            self.dir_tmp = "%s.dir" % self.filename
+        CWD = os.getcwd()
+        os.mkdir(self.dir_tmp)
+        os.chdir(self.dir_tmp)
+        
+        # extract into dir_tmp
+        for info in self.zf.infolist():
+            with open(info.filename, "w") as ofile:
+                ofile.write(self.zf.read(info.filename))
 
+        os.chdir(CWD)
+    
+    def inflate(self, remove_temp = True):
+        if not self.dir_tmp:
+            self.deflate()
+
+        CWD = os.getcwd()
+        os.chdir(self.dir_tmp)
+
+        ls_archive_file = os.listdir('.')
+        print("creating archive...")
+        zofile = zipfile.ZipFile(self.filename, mode='w')
+        try:
+            for filename in ls_archive_file:
+                zofile.write(filename)
+        finally:
+            print("archive successfully created")
+            zofile.close()
+
+        os.chdir(CWD)
+        
+        if remove_temp:
+            os.rename(os.path.join(self.dir_tmp, self.filename), os.path.join(CWD, self.filename))
+            shutil.rmtree(self.dir_tmp)
+            self.dir_tmp = None
+            
 
