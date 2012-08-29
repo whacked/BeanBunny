@@ -1,21 +1,40 @@
 import os, sys, types, re
 
 class FeatEntry:
+
+    # starting version 1, field quotes will be stripped
+    version = 1
+    strip_quotes = True
+
+    def _trim(self, s):
+        if isinstance(s, basestring):
+            return s.strip('"')
+        else:
+            return s
+    def _quote(self, s):
+        if isinstance(s, basestring):
+            return '"%s"' % s
+        else:
+            return s
+
     def __init__(self, name, value, comment):
         self.name = name
+        if self.strip_quotes:
+            value = self._trim(value)
         self.value = value
         self.comment = comment
 
     def __str__(self):
         return \
             (self.comment and '# %s\n' % self.comment.replace('\n', '\n# ') or '') + \
-            'set %s %s' % (self.name, self.value)
+            'set %s %s' % (self.name, self.strip_quotes and self._quote(self.value) or self.value)
 
     def __repr__(self):
         return str(self)
         
 
 class FeatConf:
+
     def __getitem__(self, key):
         return self.dc_index[key]
 
