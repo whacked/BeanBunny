@@ -8,33 +8,49 @@ import os, sys, types, re
 # incrementally adding some more intelligence to the class in inelegant ways.
 
 class FeatEntry:
+    p = re.compile(r'''([^(]+)\((.+)\)''')
 
     # starting version 1, field quotes will be stripped
-    version = 1
-    strip_quotes = True
+    VERSION = 1
+    STRIP_QUOTES = True
 
     def _trim(self, s):
         if isinstance(s, basestring):
             return s.strip('"')
         else:
             return s
-    def _quote(self, s):
-        if isinstance(s, basestring):
-            return '"%s"' % s
-        else:
-            return s
 
     def __init__(self, name, value, comment):
+        self._is_keyword = False
+
         self.name = name
-        if self.strip_quotes:
+        match = self.p.match(name)
+        self.groupname, self.entrykey = match.groups()
+        if self.groupname == 'feat_files':
+            self.entrykey = int(self.entrykey)
+        elif '"' not in value:
+            # assume numeric
+            if '.' in value:
+                value = float(value)
+            elif value.isdigit():
+                value = int(value)
+        if self.STRIP_QUOTES:
             value = self._trim(value)
         self.value = value
         self.comment = comment
 
+    def renderedvalue(self):
+        if not self.STRIP_QUOTES:
+            return self.value
+        if isinstance(self.value, basestring) and not self._is_keyword:
+            return '"%s"' % self.value
+        else:
+            return self.value
+
     def __str__(self):
         return \
             (self.comment and '# %s\n' % self.comment.replace('\n', '\n# ') or '') + \
-            'set %s %s' % (self.name, self.strip_quotes and self._quote(self.value) or self.value)
+            'set %s %s' % (self.name, self.renderedvalue())
 
     def __repr__(self):
         return str(self)
