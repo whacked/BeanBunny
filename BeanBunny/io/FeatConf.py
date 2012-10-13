@@ -35,9 +35,6 @@ class FeatEntry:
 
 class FeatConf:
 
-    def __getitem__(self, key):
-        return self.dc_index[key]
-
     def __setitem__(self, key, val):
         if key not in self.dc_index:
             print "WARNING: setting new item [%s]" % key
@@ -179,7 +176,6 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
     
     if len(sys.argv) < 2:
-        print """USAGE: FeatConf.py <OPTION> <featfile.fsf>"""
         parser.print_help()
         sys.exit()
 
