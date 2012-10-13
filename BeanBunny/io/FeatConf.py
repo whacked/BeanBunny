@@ -1,5 +1,12 @@
 import os, sys, types, re
 
+# supposed to contain a class, FeatConf, to ease working with fsf files in
+# python.  started as a quick-and-dirty parsing class with little semantic
+# knowledge of the fsf file, but now I'm using this in several places, this
+# code has a bunch of uglinesses that would require a search-and-replace in the
+# other scripts to fix. Which I should do. But for the time being we'll be
+# incrementally adding some more intelligence to the class in inelegant ways.
+
 class FeatEntry:
 
     # starting version 1, field quotes will be stripped
