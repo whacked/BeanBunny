@@ -1,23 +1,202 @@
 import os, sys, types, re
 
+# supposed to contain a class, FeatConf, to ease working with fsf files in
+# python.  started as a quick-and-dirty parsing class with little semantic
+# knowledge of the fsf file, but now I'm using this in several places, this
+# code has a bunch of uglinesses that would require a search-and-replace in the
+# other scripts to fix. Which I should do. But for the time being we'll be
+# incrementally adding some more intelligence to the class in inelegant ways.
+
 class FeatEntry:
+    p = re.compile(r'''([^(]+)\((.+)\)''')
+
+    # starting version 1, field quotes will be stripped
+    VERSION = 1
+    STRIP_QUOTES = True
+
+    def _trim(self, s):
+        if isinstance(s, basestring):
+            return s.strip('"')
+        else:
+            return s
+
     def __init__(self, name, value, comment):
+        self._is_keyword = False
+
         self.name = name
+        match = self.p.match(name)
+        self.groupname, self.entrykey = match.groups()
+        if self.groupname == 'feat_files':
+            self.entrykey = int(self.entrykey)
+        elif self.entrykey.startswith("con_mode"):
+            self._is_keyword = True
+        elif self.entrykey == "unwarp_dir":
+            self._is_keyword = True
+        elif '"' not in value:
+            # assume numeric
+            if '.' in value:
+                value = float(value)
+            elif value.isdigit():
+                value = int(value)
+        if self.STRIP_QUOTES:
+            value = self._trim(value)
         self.value = value
         self.comment = comment
+
+    def renderedvalue(self):
+        if not self.STRIP_QUOTES:
+            return self.value
+        if isinstance(self.value, basestring) and not self._is_keyword:
+            return '"%s"' % self.value
+        else:
+            return self.value
 
     def __str__(self):
         return \
             (self.comment and '# %s\n' % self.comment.replace('\n', '\n# ') or '') + \
-            'set %s %s' % (self.name, self.value)
+            'set %s %s' % (self.name, self.renderedvalue())
 
     def __repr__(self):
         return str(self)
         
 
+class Bunch(dict):
+    def __init__(self, **kw):
+        dict.__init__(self, kw)
+        self.__dict__ == self
+    __getattr__ = dict.__getitem__
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+
 class FeatConf:
-    def __getitem__(self, key):
-        return self.dc_index[key]
+
+    FEATVERSION = 5.98
+
+    def output_order(self):
+        out = []
+        for key in """\
+version
+inmelodic
+level
+analysis
+relative_yn
+help_yn
+featwatcher_yn
+sscleanup_yn
+outputdir
+tr
+npts
+ndelete
+tagfirst
+multiple
+inputtype
+filtering_yn
+brain_thresh
+critical_z
+noise
+noisear
+newdir_yn
+mc
+sh_yn
+regunwarp_yn
+dwell
+te
+signallossthresh
+unwarp_dir
+st
+st_file
+bet_yn
+smooth
+norm_yn
+perfsub_yn
+temphp_yn
+templp_yn
+melodic_yn
+stats_yn
+prewhiten_yn
+motionevs
+robust_yn
+mixed_yn
+evs_orig
+evs_real
+evs_vox
+ncon_orig
+ncon_real
+nftests_orig
+nftests_real
+constcol
+poststats_yn
+threshmask
+thresh
+prob_thresh
+z_thresh
+zdisplay
+zmin
+zmax
+rendertype
+bgimage
+tsplot_yn
+reg_yn
+reginitial_highres_yn
+reginitial_highres_search
+reginitial_highres_dof
+reghighres_yn
+reghighres_search
+reghighres_dof
+regstandard_yn
+regstandard
+regstandard_search
+regstandard_dof
+regstandard_nonlinear_yn
+regstandard_nonlinear_warpres
+paradigm_hp
+ncopeinputs
+copeinput.1
+""".strip().split():
+            out.append(str(self.fmri[key]))
+
+        # feat_files section
+        for feat_file_num in range(1, len(self.feat_files)+1):
+            out.append(str(self.feat_files[feat_file_num]))
+# TODO
+# keys that get created per event and group etc.
+# e.g. evtitle1, groupmem.1 and stuff like that
+# these were laid out in an old modification
+# and i no longer remember the original intention
+# axh Mon Feb 18 17:55:35 EST 2013
+# ---
+# evtitle
+# shape
+# convolve
+# convolve_phase
+# tempfilt_yn
+# deriv_yn
+# custom
+# ortho
+# evg
+# groupmem
+# conpic_real
+# conname_real
+# con_real
+# conmask
+# ...
+
+        for key in """\
+confoundevs
+alternative_example_func
+alternative_mask
+init_initial_highres
+init_highres
+init_standard
+overwrite_yn
+level2orth
+con_mode_old
+con_mode
+conmask_zerothresh_yn
+""".strip().split():
+            out.append(str(self.fmri[key]))
+        return "\n\n".join(out)
 
     def __setitem__(self, key, val):
         if key not in self.dc_index:
@@ -43,6 +222,7 @@ class FeatConf:
 
         self.ls_entry = []
         self.dc_index = {}
+
         entrypattern = re.compile(r'^set\s+(\S+)\s+(.*)$')
 
         self.ls_groupmem = []
@@ -60,6 +240,10 @@ class FeatConf:
                 commentbuf = []
                 self.dc_index[fe.name] = fe
                 self.ls_entry.append(fe)
+
+                if not hasattr(self, fe.groupname):
+                    setattr(self, fe.groupname, Bunch())
+                self.__dict__[fe.groupname][fe.entrykey] = fe
 
     def __getitem__(self, name):
         return self.dc_index.get(name).value
@@ -160,7 +344,6 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
     
     if len(sys.argv) < 2:
-        print """USAGE: FeatConf.py <OPTION> <featfile.fsf>"""
         parser.print_help()
         sys.exit()
 
