@@ -1,16 +1,20 @@
-assorted python files to interface with assorted file formats
+assorted python libs for convenience
 
-* BeanBunny.io.DicomInfo
+* BeanBunny.io
 
-  simple class to hold dicom run information, mostly for nipy use
+  file formats:
 
-* BeanBunny.io.XOJFile
+  - DicomInfo: simple class to hold dicom run information, mostly for nipy use
+  - FeatConf: naive parsing of FSL FEAT (.fsf) config files. Basically python replacement of sed/grep for nipype
+  - XOJFile: xournal 0.4.5 R/W
+  - JAJFile: Jarnal (.jaj) file R/W
+  - OkularAnnotation: work with xml generated for pdf by Okular's Review functionality
+  - IliadScribble: work with Iliad e-book reader scribble files
 
-  xournal 0.4.5 file writer?
+* BeanBunny.data
 
-* BeanBunny.io.JAJFile
+  functions to manipulate nested data structures
 
-  Jarnal (.jaj) file extractor
+* BeanBunny.conversion
 
-  used with XOJFile in jaj2xoj converter
-
+  don't remember right now
