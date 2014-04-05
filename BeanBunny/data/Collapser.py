@@ -15,9 +15,24 @@ def cached(func):
         return cache[key]
     return with_cache
 
+@cached
+def compile_header(d):
+    '''
+    note d should be a dict where keys are depth value and
+    values are lists of str
+    '''
+    rtn = []
+    for k in sorted(d.keys()):
+        rtn.extend(list(sorted(map(lambda s: s.replace('\0', ''), d[k]))))
+    return rtn
+
+@cached
+def sorted_with_index(key_list):
+    return sorted(enumerate(key_list), key=lambda x:x[1])
+
 def collapse(D_input):
     '''
-    first version (and probably very slow)
+    first.2 version (and probably very slow)
 
     takes a nested dict of arbitrary depth construct a 2d table for
     it
@@ -26,68 +41,59 @@ def collapse(D_input):
     structure
     '''
 
-    @cached
-    def compile_header(d):
-        '''
-        note d should be a dict where keys are depth value and
-        values are lists of str
-        '''
-        rtn = []
-        for k in sorted(d.keys()):
-            rtn.extend(list(sorted(d[k])))
-        return rtn
-
-    def compile_data(dhdr, data):
-        '''
-        return a flatted row for data, based on the kind of
-        ordering we'd get from calling compile_header in the header
-        dict
-        '''
-        rtn = []
-        for k in sorted(dhdr.keys()):
-            if not data[k]: continue
-            for key_index, key_sorted in sorted(enumerate(dhdr[k]), key=lambda v:v[1]):
-                rtn.append( data[k][key_index] )
-        return rtn
-
-    dhdr = {} # store header names
-    dcat = {} # store (repeat) categorical data
+    dhdr = {}
     data = []
-    def recur(D, depth = 1):
 
+    def recur(D, depth=1, prepend=None):
+        if type(D) is dict:
+            sorted_key_list = list(sorted(D.keys()))
+        elif type(D) is list:
+            sorted_key_list = range(len(D))
+        else:
+            raise Exception('input data not dict or list')
+
+        if prepend is None:
+            prepend = []
+
+        ORD_COLNAME = '\0number'
         if depth not in dhdr:
-            key_list = []
-            for k in D.keys():
-                if type(D[k]) is not list:
-                    key_list.append(k)
-            dhdr[depth] = key_list
-
-        # unlike header, the categorical stuff gets rewritten every pass!
-        dcat[depth] = []
-
-        # save this, so we can recur to next level after everything at current
-        # level has been processed
-        to_recur = []
-        for k, v in D.iteritems():
-            if type(v) is list:
-                for row in v:
-                    # list itself is 1 depth
-                    to_recur.append((row, depth+2))
+            dhdr[depth] = []
+            if type(D) is dict:
+                dhdr[depth].extend(sorted_key_list)
             else:
-                dcat[depth].append(v)
-        for argv in to_recur:
-            recur(argv[0], argv[1])
+                dhdr[depth].append(ORD_COLNAME)
+
+        to_recur = []
+
+        if type(D) is list:
+            for idx in sorted_key_list:
+                to_recur.append((D[idx], depth+1, [idx]))
+        else:
+            for key in sorted_key_list:
+                val = D[key]
+                if   type(val) is dict:
+                    to_recur.append((val, depth+1, []))
+                elif type(val) is list:
+                    for ith, row in enumerate(val):
+                        to_recur.append((row, depth+2, [ith]))
+                else:
+                    if depth < bottom_depth:
+                        prepend.append(val)
+
+        for next_D, next_depth, next_prepend in to_recur:
+            recur(next_D, next_depth, prepend + next_prepend)
         if depth == bottom_depth:
-            # hit bottom.
-            # at this point, if the data is well-formed, dhdr should contain
-            # all the header names we need
-            data.append(compile_data(dhdr, dcat))
+            if   type(D) is dict:
+                data.append(prepend + [D[k] for k in dhdr[depth]])
+            # NOTE didn't do any testing with any of these this is just the
+            # data type compatible thing to do
+            elif type(D) is list:
+                data.append(prepend + D)
+            else:
+                data.append(prepend + [D])
 
-    # everything less than this depth should provide category variables
     bottom_depth = dsu.dict_depth(D_input)
-
     recur(D_input)
-
     return [compile_header(dhdr)] + data
 
 
