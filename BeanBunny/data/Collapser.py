@@ -149,7 +149,7 @@ if __name__ == '__main__':
             if faker:
                 return faker.Faker().username
             else:
-                return lambda: ''.join([random.choice(string.letters) for i in range(6)])
+                return lambda: ''.join([random.choice(string.ascii_letters) for i in range(6)])
 
         def __init__(self):
             self.nresponse = 0
@@ -192,8 +192,11 @@ if __name__ == '__main__':
 
     gen = Gen()
     gen.generate_nested(3)
-    print gen.nresponse, "generated"
-    raw_input()
+    print(gen.nresponse, "generated")
+    try:
+        raw_input()
+    except:
+        input()
 
     processed = collapse(gen.D)
     hdr_list  = uniquify_header(processed[0])

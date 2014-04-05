@@ -10,10 +10,15 @@ that
 import random
 try:
     import faker
-except ImportError, e:
+except ImportError as e:
     print("no `faker`. generate_random_datastruct will not work")
     faker = None
 
+try:
+    basestring
+except NameError:
+    # python 3
+    basestring = str
 
 _DEBUG_LEVEL = 0
 
@@ -49,9 +54,15 @@ try:
     import numpy as np
     import operator
     import decimal
+
+    try:
+        unicodeclass = unicode
+    except:
+        # python 3
+        unicodeclass = str
     SmartTypeMap = {
             decimal.Decimal: lambda _: np.float,
-            unicode: lambda ls: "|S%s" % max(map(len, ls)),
+            unicodeclass: lambda ls: "|S%s" % max(map(len, ls)),
             }
     def smart_dataset_to_table(D):
         # infer base structure
@@ -61,7 +72,7 @@ try:
         dout = dict([(key, map(operator.itemgetter(key), D)) for key in dschema])
         dtype = [(str(key), SmartTypeMap.get(basetype, lambda _: basetype)(dout[key])) for key, basetype in dschema.items()]
         return np.array([tuple([dd[key] for key in dschema]) for dd in D], dtype = dtype)
-except ImportError, e:
+except ImportError as e:
     def smart_dataset_to_table(D):
         return None
     print("error on import: %s\n%s will not function." % (e, smart_dataset_to_table.__name__))
@@ -90,8 +101,8 @@ def generate_random_datastruct(max_depth = 1, allow_type = None):
         return random.random()
     elif mytype == str:
         return faker.Faker().username()
-    elif mytype == unicode:
-        return unicode(faker.Faker().username())
+    elif mytype == unicodeclass:
+        return unicodeclass(faker.Faker().username())
     elif mytype == list:
         # should parametrize this into arglist...
         rtn = []
@@ -180,7 +191,7 @@ def recursive_fuzzer(refds, type_change = None, level = 0):
                 return generate_random_datastruct(allow_type = [float, str])
             elif type_refds == float:
                 return generate_random_datastruct(allow_type = [int, str])
-            elif type_refds in (str, unicode):
+            elif type_refds in (str, unicodeclass):
                 return generate_random_datastruct(allow_type = [int, long, float])
             else:
                 raise TypeError("unprocessed type: %s" % type_refds)
@@ -259,7 +270,7 @@ def dict_depth(dc, DEPTH = 1):
     rtn_depth = DEPTH
     for k in dc:
         next = get(k)
-        # print "+++" + (" %s>" % DEPTH) * DEPTH, k
+        # print("+++" + (" %s>" % DEPTH) * DEPTH, k)
         if hasattr(next, "__iter__"):
             rtn_depth = max(rtn_depth, dict_depth(next, DEPTH + 1) or 0)
     return rtn_depth
@@ -302,7 +313,7 @@ def extract_obj_at_depth_offset(dc, offset = 0):
         (([[2,3,[4,5]]], 1), [[2, 3, [4, 5]]]),
         (([[2,3,[4,5]]], 2), [[4, 5]]),
         ]:
-        print "TESTING:", test
+        print("TESTING:", test)
         assert extract_obj_at_depth_offset(*test) == expect
     """
 
@@ -338,25 +349,25 @@ def sliding_subset_check(sub, SUP, empty_set = None, tolerate_key_val = None):
         for depth_offset in range(depth_SUP - depth_sub, -1, -1):
             # extract into individual dict at given offset level
             if _DEBUG_LEVEL > 0:
-                print "CHECKING DEPTH", depth_offset, len(extract_obj_at_depth_offset(SUP, depth_offset))
+                print("CHECKING DEPTH", depth_offset, len(extract_obj_at_depth_offset(SUP, depth_offset)))
             for extracted_SUP in extract_obj_at_depth_offset(SUP, depth_offset):
                 if depth_offset > 1:
                     if _DEBUG_LEVEL > 0:
-                        print extracted_SUP
+                        print(extracted_SUP)
                 subcheck = is_obj_subset(sub, extracted_SUP, empty_set, tolerate_key_val)
                 if subcheck:
                     if _DEBUG_LEVEL > 0:
-                        print "FOUND SUBSET:"
-                        # print sub
-                        print "-------------------- AT LAYER %s --------------------" % (depth_offset)
-                        # print extracted_SUP
+                        print("FOUND SUBSET:")
+                        # print(sub)
+                        print("-------------------- AT LAYER %s --------------------" % (depth_offset))
+                        # print(extracted_SUP)
                     return subcheck
         return False
     else:
         if depth_sub is None and depth_SUP is not None:
             if sub in SUP:
                 return True
-        print "scalar comparison:", sub, SUP
+        print("scalar comparison:", sub, SUP)
 
 def is_obj_subset(sub, SUP, empty_set = None, tolerate_key_val = None, depth = 0):
     """
@@ -404,14 +415,14 @@ def is_obj_subset(sub, SUP, empty_set = None, tolerate_key_val = None, depth = 0
         (  ({"a": 1, "b": {}},{"a": 1, "b": 2}, [{},]), True    ), # proper subset with list value
         (  ({"a": 1, "b": 2},{"a": 1, "b": {}}, [{},]), False    ), # proper subset with list value
         ]:
-        print "TESTING:", test
+        print("TESTING:", test)
         assert is_obj_subset(*test) == expect
 
 
     """
 
     if _DEBUG_LEVEL > 0:
-        print ">> " + ("%s> " % depth) * depth, sub, " -- ", SUP
+        print(">> " + ("%s> " % depth) * depth, sub, " -- ", SUP)
     if not hasattr(sub, "__iter__") or \
             (not sub and hasattr(sub, "__iter__")):
         if SUP and empty_set and (sub in empty_set):
@@ -429,7 +440,7 @@ def is_obj_subset(sub, SUP, empty_set = None, tolerate_key_val = None, depth = 0
         if type(SUP) is list:
             try:
                 nslide = 1 + len(SUP) - len(sub)
-            except TypeError, e:
+            except TypeError as e:
                 nslide = 0
             while nslide > 0:
                 # XXX this looks risky
@@ -445,10 +456,10 @@ def is_obj_subset(sub, SUP, empty_set = None, tolerate_key_val = None, depth = 0
             for k, v_sub in sub.items():
                 if k not in SUP:
                     if _DEBUG_LEVEL > 0:
-                        print "SUP not have:", k
+                        print("SUP not have:", k)
                     if tolerate_key_val is not None and k in tolerate_key_val and (v_sub == tolerate_key_val[k]):
                         if _DEBUG_LEVEL > 0:
-                            print "tolerated ex ante!"
+                            print("tolerated ex ante!")
                     else:
                         #lstest.append(False)
                         return False
@@ -481,15 +492,15 @@ def get_add_op(d0, d1, searchpath = ""):
         (  ({1:2, 3: [1,2,3]},{1:2, 3: [1,2,3,4]}),
            ("[3]", "append", 4) ), # proper subset with list value
         ]:
-        print "TESTING:", test
+        print("TESTING:", test)
         actual = get_add_op(*test)
         try:
             assert actual == expect
-        except Exception, e:
-            print "FAIL on:", test
-            print "-" * 20
-            print "expected:", expect
-            print "got", actual
+        except Exception as e:
+            print("FAIL on:", test)
+            print("-" * 20)
+            print("expected:", expect)
+            print("got", actual)
             break        
 
     """
@@ -518,7 +529,7 @@ def get_add_op(d0, d1, searchpath = ""):
                         operation = "assign"
                         substructure = v1
             else:
-                print "IFFY IFFY! " * 20
+                print("IFFY IFFY! " * 20)
                 return get_add_op(d0[k1], v1, searchpath_current)
     return (len(searchpath) and searchpath or None, operation, substructure)
 
