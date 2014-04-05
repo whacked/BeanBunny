@@ -195,15 +195,20 @@ if __name__ == '__main__':
     print gen.nresponse, "generated"
     raw_input()
 
-    nprint = 0
     processed = collapse(gen.D)
-    for row in processed:
+    hdr_list  = uniquify_header(processed[0])
+    padding = 2
+    len_list = [len(hdr) for hdr in hdr_list]
+    fmt_list = [('{:<%s}'+' '*padding)%(x) for x in len_list]
+    nprint = 0
+    for row in [hdr_list] + processed[1:]:
+        line = ''.join([fmt.format(val) for fmt, val in zip(fmt_list, row)])
+        print(line)
         nprint += 1
-        line = '\t'.join(map(lambda x: str(x)[:6], row))
-        print line
         if nprint == 1:
-            print '-' * (len(row)+line.count('\t')*8)
-    print nprint-1, 'printed'
+            print('-' * sum([x+padding for x in len_list]))
+        if nprint > 10: break
+    print(nprint-1, 'printed')
 
 
 
