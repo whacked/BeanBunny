@@ -1,8 +1,13 @@
-import pandas as pd
 from collections import Counter
 from functools import wraps
 
 import DataStructUtil as dsu
+
+try:
+    import pandas as pd
+except Exception:
+    print('could not import pandas, export to dataframe will not work')
+    pd = None
 
 def cached(func):
     cache = {}
@@ -184,8 +189,6 @@ if __name__ == '__main__':
             self.D = recur(mydepth)
             return self.D
 
-
-    import matplotlib.pyplot as plt
 
     gen = Gen()
     gen.generate_nested(3)
