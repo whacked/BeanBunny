@@ -30,7 +30,7 @@ def compile_header(d):
 def sorted_with_index(key_list):
     return sorted(enumerate(key_list), key=lambda x:x[1])
 
-def collapse(D_input):
+def collapse(D_input, ORD_COLNAME = 'number'):
     '''
     first.2 version (and probably very slow)
 
@@ -40,6 +40,9 @@ def collapse(D_input):
     children at the same depth are expected to have matching
     structure
     '''
+    # reduces chance of collision although current code doesn't use
+    # keycheck or set() so this doesn't actually do anything now
+    ORD_COLNAME = '\0' + ORD_COLNAME
 
     dhdr = {}
     data = []
@@ -55,7 +58,6 @@ def collapse(D_input):
         if prepend is None:
             prepend = []
 
-        ORD_COLNAME = '\0number'
         if depth not in dhdr:
             dhdr[depth] = []
             if type(D) is dict:
@@ -97,8 +99,8 @@ def collapse(D_input):
     return [compile_header(dhdr)] + data
 
 
-def collapse_to_dataframe(D_input):
-    processed = collapse(D_input)
+def collapse_to_dataframe(D_input, *argv):
+    processed = collapse(D_input, *argv)
     # process column names and rename any duplicated columns
     setting = dict((colname, {
         'should_process': count > 1,
