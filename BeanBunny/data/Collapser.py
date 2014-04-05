@@ -185,7 +185,7 @@ if __name__ == '__main__':
         line = '\t'.join(map(lambda x: str(x)[:6], row))
         print line
         if nprint == 1:
-            print '-' * (len(line)+line.count('\t')*1)
+            print '-' * (len(row)+line.count('\t')*8)
     print nprint-1, 'printed'
 
 
