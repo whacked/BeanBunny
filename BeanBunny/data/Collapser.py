@@ -98,25 +98,31 @@ def collapse(D_input, ORD_COLNAME = 'number'):
     recur(D_input)
     return [compile_header(dhdr)] + data
 
-
-def collapse_to_dataframe(D_input, *argv):
-    processed = collapse(D_input, *argv)
-    # process column names and rename any duplicated columns
+def uniquify_header(hdr):
     setting = dict((colname, {
         'should_process': count > 1,
         'format_string': '%%s%%0%dd' % len(str(count)),
         'total_added': 0,
-        }) for colname, count in Counter(processed[0]).items())
-    hdr = []
-    for k in processed[0]:
+        }) for colname, count in Counter(hdr).items())
+
+    rtn = []
+    for k in hdr:
         if setting[k]['should_process']:
             setting[k]['total_added'] += 1
             colname = setting[k]['format_string'] % (k, setting[k]['total_added'])
-            hdr.append(colname)
+            rtn.append(colname)
         else:
-            hdr.append(k)
-    return pd.DataFrame.from_records(processed[1:], columns=hdr)
+            rtn.append(k)
+    return rtn
 
+def collapse_to_dataframe(D_input, *argv):
+    processed = collapse(D_input, *argv)
+    # process column names and rename any duplicated columns
+    hdr = uniquify_header(processed[0])
+    if pd:
+        return pd.DataFrame.from_records(processed[1:], columns=hdr)
+    else:
+        return [hdr] + processed[1:]
 
 if __name__ == '__main__':
 
