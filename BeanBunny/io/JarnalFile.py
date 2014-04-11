@@ -47,7 +47,7 @@ class JAJFile:
     def cleanup(self):
         if not self.dir_tmp: return
         for filename in self.ls_extract:
-            print "~ jaj", filename
+            print("~ jaj %s" % filename)
             os.unlink(os.path.join(self.dir_tmp, filename))
         os.rmdir(self.dir_tmp)
         

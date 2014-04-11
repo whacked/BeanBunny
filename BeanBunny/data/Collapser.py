@@ -1,7 +1,7 @@
 from collections import Counter
 from functools import wraps
 
-import DataStructUtil as dsu
+import BeanBunny.data.DataStructUtil as dsu
 
 try:
     import pandas as pd

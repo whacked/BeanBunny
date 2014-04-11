@@ -46,7 +46,7 @@ class OkularAnnotation:
         if hasattr(self, fn_processor_name):
             return getattr(self, fn_processor_name)()
         else:
-            print "UNSUPPORTED TYPE:", self.type
+            print("UNSUPPORTED TYPE: %s" % self.type)
             return None
 
     def process_annotation_FREEHAND_LINE(self): # green
@@ -113,7 +113,7 @@ def process_okular_xml(xml_path):
         ls_annotation = page.findChildren("annotation")
     
         if not ls_annotation:
-            print "no annotations found"
+            print("no annotations found")
             return
     
         for ano in ls_annotation:
@@ -124,9 +124,9 @@ def process_okular_xml(xml_path):
     
 
 def write_okular_annotation(source_pdf, okular_xml, output_dir):
-    print "#" * 80
-    print "OUTPUTTING TO: %s" % output_dir
-    print "#" * 80
+    print("#" * 80)
+    print("OUTPUTTING TO: %s" % output_dir)
+    print("#" * 80)
 
     pdfr = pyPdf.PdfFileReader(open(source_pdf, "rb"))
     _xzero, _yzero, DOC_WIDTH, DOC_HEIGHT = pdfr.getPage(0)['/MediaBox']
@@ -144,7 +144,7 @@ def write_okular_annotation(source_pdf, okular_xml, output_dir):
         ls_annotation = page.findChildren("annotation")
     
         if not ls_annotation:
-            print "no annotations found"
+            print("no annotations found")
             return
     
         ls_xml = []
@@ -157,8 +157,8 @@ def write_okular_annotation(source_pdf, okular_xml, output_dir):
         open(FILE_OUTPUT_TEMPLATE % page_num, "w").write(svg_out)
         dc_page_annotation[page_num] = FILE_OUTPUT_TEMPLATE % page_num
 
-        #print svg_out
-        #print "\n------\n\n"
+        #print(svg_out)
+        #print("\n------\n\n")
     
     PDFAP = PDFAnnotationProcessor.PDFAnnotationProcessor( \
         source_pdf,
@@ -177,7 +177,7 @@ if __name__ == "__main__":
 
     try:
         pdf_filepath = sys.argv[1]
-    except IndexError, e:
+    except IndexError as e:
         sys.exit("need filepath")
 
     pdf_filename = os.path.split(pdf_filepath)[-1]
@@ -186,13 +186,13 @@ if __name__ == "__main__":
         sys.exit()
 
     pdf_filesize = os.path.getsize(pdf_filepath)
-    #print "filesize of %s is %s" % (pdf_filepath, pdf_filesize)
+    #print("filesize of %s is %s" % (pdf_filepath, pdf_filesize))
     
     okl_filepath = os.path.join(OKULAR_ANNOTATION_PATH, "%d.%s.xml" % (pdf_filesize, pdf_filename))
-    #print "filepath of okular xml: %s" % (okl_filepath)
+    #print("filepath of okular xml: %s" % (okl_filepath))
 
     if os.path.exists(okl_filepath):
-        # print "filesize of %s is %s\n\n" % (okl_filepath, os.path.getsize(okl_filepath))
+        # print("filesize of %s is %s\n\n" % (okl_filepath, os.path.getsize(okl_filepath)))
         process_okular_xml(okl_filepath)
         sys.exit(okl_filepath)
     else:

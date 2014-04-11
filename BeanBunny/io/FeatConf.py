@@ -200,7 +200,7 @@ conmask_zerothresh_yn
 
     def __setitem__(self, key, val):
         if key not in self.dc_index:
-            print "WARNING: setting new item [%s]" % key
+            print("WARNING: setting new item [%s]" % key)
         self.dc_index[key].value = val
 
     def __delitem__(self, key):
@@ -298,7 +298,7 @@ conmask_zerothresh_yn
                     if not re.match(p_match, fe.value):
                         ls_feat_files.append(fe.value)
                     else:
-                        print "removing: " + fe.value
+                        print("removing: " + fe.value)
                 del self.dc_index[fe.name]
                 del self.ls_entry[idx]
                 end -= 1
@@ -349,7 +349,7 @@ if __name__ == "__main__":
 
     fsf_file = sys.argv[-1]
     if not os.path.exists(fsf_file):
-        print "the file does not exist!"
+        print("the file does not exist!")
         sys.exit(1)
 
     def sort_by_dotnumber(t1, t2):
@@ -361,7 +361,7 @@ if __name__ == "__main__":
 
     FC = FeatConf(fsf_file)
     if options.print_everything:
-        print str(FC)
+        print(str(FC))
     else:
         res = None
         if options.contrast_list:
@@ -371,4 +371,4 @@ if __name__ == "__main__":
         if res:
             maxlenk = max(map(len, res.keys()))
             for k, v in sorted(res.items(), sort_by_dotnumber):
-                print " " + k.ljust(maxlenk + 1) + ": " + v
+                print(" " + k.ljust(maxlenk + 1) + ": " + v)
