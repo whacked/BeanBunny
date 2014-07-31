@@ -35,7 +35,7 @@ def compile_header(d):
 def sorted_with_index(key_list):
     return sorted(enumerate(key_list), key=lambda x:x[1])
 
-def collapse(D_input, ORD_COLNAME = 'number'):
+def collapse(D_input, ORD_COLNAME = u'number'):
     '''
     first.2 version (and probably very slow)
 
