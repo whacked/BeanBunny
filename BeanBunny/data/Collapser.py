@@ -75,21 +75,28 @@ def collapse(D_input, ORD_COLNAME = u'number'):
 
         if type(D) is list:
             for idx in sorted_key_list:
-                to_recur.append((D[idx], depth+1, [idx]))
+                to_recur.append(RecurStruct(D[idx], depth+1, idx, None))
         else:
-            for key in sorted_key_list:
+            for idx, key in enumerate(sorted_key_list):
                 val = D[key]
                 if   type(val) is dict:
-                    to_recur.append((val, depth+1, []))
+                    to_recur.append(RecurStruct(val, depth+1, None, None))
                 elif type(val) is list:
                     for ith, row in enumerate(val):
-                        to_recur.append((row, depth+2, [ith]))
+                        to_recur.append(RecurStruct(row, depth+2, ith, idx))
                 else:
                     if depth < bottom_depth:
                         prepend.append(val)
 
-        for next_D, next_depth, next_prepend in to_recur:
-            recur(next_D, next_depth, prepend + next_prepend)
+        for next_D, next_depth, insert_item, insert_index in to_recur:
+            if insert_index is None:
+                if insert_item is None:
+                    next_prepend = prepend
+                else:
+                    next_prepend = prepend + [insert_item]
+            else:
+                next_prepend = prepend[:insert_index] + [insert_item] + prepend[insert_index:]
+            recur(next_D, next_depth, next_prepend)
         if depth == bottom_depth:
             if   type(D) is dict:
                 data.append(prepend + [D[k] for k in dhdr[depth]])
@@ -102,6 +109,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
 
     bottom_depth = dsu.dict_depth(D_input)
     recur(D_input)
+    
     return [compile_header(dhdr)] + data
 
 def uniquify_header(hdr):
