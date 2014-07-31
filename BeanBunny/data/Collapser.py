@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, namedtuple
 from functools import wraps
 
 import BeanBunny.data.DataStructUtil as dsu
@@ -52,6 +52,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
     dhdr = {}
     data = []
 
+    RecurStruct = namedtuple('RecurStruct', ['next_D', 'next_depth', 'insert_item', 'insert_index'])
     def recur(D, depth=1, prepend=None):
         if type(D) is dict:
             sorted_key_list = list(sorted(D.keys()))
