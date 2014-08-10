@@ -27,7 +27,7 @@ def check_dataset_consistency(D, level = 0):
     """
     currently 1 level deep only
     """
-    if not type(D) is list:
+    if not isinstance(D, list):
         raise TypeError("non-list not supported")
     if not D:
         return None
@@ -37,9 +37,9 @@ def check_dataset_consistency(D, level = 0):
     for dd in D:
         if type(dd) is not type0:
             return False
-        if type(dd) is list:
+        if isinstance(dd, list):
             check_dataset_consistency(dd, level + 1)
-        elif type(dd) is dict:
+        elif isinstance(dd, dict):
             if dschema is None:
                 dschema = {}
                 for k, v in dd.iteritems():
@@ -263,7 +263,7 @@ def dict_depth(dc, DEPTH = 1):
         return None
     if isinstance(dc, basestring):
         return 1
-    elif type(dc) is dict:
+    elif isinstance(dc, dict):
         get = dc.get
     else:
         get = lambda x: x
@@ -293,7 +293,7 @@ def dict_breadth(mixed):
     
     lslevel = []
     breadth = 0
-    lsv = type(mixed) is dict and mixed.values() or mixed
+    lsv = isinstance(mixed, dict) and mixed.values() or mixed
     for v in lsv:
         breadth += 1
         if isinstance(v, (tuple, list, dict)):
@@ -430,14 +430,14 @@ def is_obj_subset(sub, SUP, empty_set = None, tolerate_key_val = None, depth = 0
         elif hasattr(SUP, "__iter__"):
             return sub in SUP or sub == SUP
         return sub == SUP
-    if not type(sub) is dict:
+    if not isinstance(sub, dict):
         # 2 cases here if length doesn't match up:
         # A,B vs A,B,x --> true
         # A,B vs x,A,B --> false on first zip
         # A,B vs x,x,A,B --> false on first zip
         # so need to realign and test again
         # use a sliding window:
-        if type(SUP) is list:
+        if isinstance(SUP, list):
             try:
                 nslide = 1 + len(SUP) - len(sub)
             except TypeError as e:
@@ -451,7 +451,7 @@ def is_obj_subset(sub, SUP, empty_set = None, tolerate_key_val = None, depth = 0
                     return True
         return False
     else:
-        if type(SUP) is dict:
+        if isinstance(SUP, dict):
             lstest = []
             for k, v_sub in sub.items():
                 if k not in SUP:
@@ -517,7 +517,7 @@ def get_add_op(d0, d1, searchpath = ""):
             operation = "assign"
             substructure = v1
         else:
-            if not type(v1) is dict:
+            if not isinstance(v1, dict):
                 # list/tuple
                 if hasattr(v1, "__iter__"):
                     if len(v1) == len(d0[k1]) + 1 and v1[:-1] == d0[k1]:

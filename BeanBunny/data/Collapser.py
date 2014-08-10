@@ -54,9 +54,9 @@ def collapse(D_input, ORD_COLNAME = u'number'):
 
     RecurStruct = namedtuple('RecurStruct', ['next_D', 'next_depth', 'insert_item', 'insert_index'])
     def recur(D, depth=1, prepend=None):
-        if type(D) is dict:
+        if isinstance(D, dict):
             sorted_key_list = list(sorted(D.keys()))
-        elif type(D) is list:
+        elif isinstance(D, list):
             sorted_key_list = range(len(D))
         else:
             raise Exception('input data not dict or list')
@@ -66,22 +66,22 @@ def collapse(D_input, ORD_COLNAME = u'number'):
 
         if depth not in dhdr:
             dhdr[depth] = []
-            if type(D) is dict:
+            if isinstance(D, dict):
                 dhdr[depth].extend(sorted_key_list)
             else:
                 dhdr[depth].append(ORD_COLNAME)
 
         to_recur = []
 
-        if type(D) is list:
+        if isinstance(D, list):
             for idx in sorted_key_list:
                 to_recur.append(RecurStruct(D[idx], depth+1, idx, None))
         else:
             for idx, key in enumerate(sorted_key_list):
                 val = D[key]
-                if   type(val) is dict:
+                if   isinstance(val, dict):
                     to_recur.append(RecurStruct(val, depth+1, None, None))
-                elif type(val) is list:
+                elif isinstance(val, list):
                     for ith, row in enumerate(val):
                         to_recur.append(RecurStruct(row, depth+2, ith, idx))
                 else:
@@ -98,11 +98,11 @@ def collapse(D_input, ORD_COLNAME = u'number'):
                 next_prepend = prepend[:insert_index] + [insert_item] + prepend[insert_index:]
             recur(next_D, next_depth, next_prepend)
         if depth == bottom_depth:
-            if   type(D) is dict:
+            if   isinstance(D, dict):
                 data.append(prepend + [D[k] for k in dhdr[depth]])
             # NOTE didn't do any testing with any of these this is just the
             # data type compatible thing to do
-            elif type(D) is list:
+            elif isinstance(D, list):
                 data.append(prepend + D)
             else:
                 data.append(prepend + [D])
