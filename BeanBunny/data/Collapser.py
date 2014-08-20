@@ -99,7 +99,10 @@ def collapse(D_input, ORD_COLNAME = u'number'):
             recur(next_D, next_depth, next_prepend)
         if depth == bottom_depth:
             if   isinstance(D, dict):
-                data.append(prepend + [D[k] for k in dhdr[depth]])
+                # unify empty list/dict, string into a single None entry.
+                # this avoids collapse output looking like a single row
+                # with '[]' as the value of some empty list column
+                data.append(prepend + [D[k] or None for k in dhdr[depth]])
             # NOTE didn't do any testing with any of these this is just the
             # data type compatible thing to do
             elif isinstance(D, list):
