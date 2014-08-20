@@ -156,7 +156,7 @@ if __name__ == '__main__':
 
         def _random_generator(self):
             if faker:
-                return faker.Faker().username
+                return faker.Faker().user_name
             else:
                 return lambda: ''.join([random.choice(string.ascii_letters) for i in range(6)])
 
