@@ -35,6 +35,11 @@ def compile_header(d):
 def sorted_with_index(key_list):
     return sorted(enumerate(key_list), key=lambda x:x[1])
 
+def empty_to_none(val):
+    if not val and isinstance(val, (list,dict)):
+        return None
+    return val
+        
 def collapse(D_input, ORD_COLNAME = u'number'):
     '''
     first.2 version (and probably very slow)
@@ -102,7 +107,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
                 # unify empty list/dict, string into a single None entry.
                 # this avoids collapse output looking like a single row
                 # with '[]' as the value of some empty list column
-                data.append(prepend + [D[k] or None for k in dhdr[depth]])
+                data.append(prepend + [empty_to_none(D[k]) for k in dhdr[depth]])
             # NOTE didn't do any testing with any of these this is just the
             # data type compatible thing to do
             elif isinstance(D, list):
