@@ -100,9 +100,9 @@ def generate_random_datastruct(max_depth = 1, allow_type = None):
     elif mytype == float:
         return random.random()
     elif mytype == str:
-        return faker.Faker().username()
+        return faker.Faker().user_name()
     elif mytype == unicodeclass:
-        return unicodeclass(faker.Faker().username())
+        return unicodeclass(faker.Faker().user_name())
     elif mytype == list:
         # should parametrize this into arglist...
         rtn = []
