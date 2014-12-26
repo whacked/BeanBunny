@@ -49,6 +49,13 @@ def collapse(D_input, ORD_COLNAME = u'number'):
 
     children at the same depth are expected to have matching
     structure
+
+    at present this cannot handle such a structure:
+    {k1: v1,
+     k2: v2,
+     k3: {k3k1: k3v1},
+     k4: [...]}
+    the k3 dict will cause breakage.
     '''
     # reduces chance of collision although current code doesn't use
     # keycheck or set() so this doesn't actually do anything now
@@ -164,7 +171,7 @@ if __name__ == '__main__':
 
         def _random_generator(self):
             if faker:
-                return faker.Faker().user_name
+                return faker.Faker().username
             else:
                 return lambda: ''.join([random.choice(string.ascii_letters) for i in range(6)])
 
