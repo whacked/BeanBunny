@@ -39,7 +39,7 @@ def empty_to_none(val):
     if not val and isinstance(val, (list,dict)):
         return None
     return val
-        
+
 def collapse(D_input, ORD_COLNAME = u'number'):
     '''
     first.2 version (and probably very slow)
@@ -144,8 +144,37 @@ def uniquify_header(hdr):
             rtn.append(k)
     return rtn
 
+def unravel_config(D_input):
+    '''
+    !!! NOT A SAFE FUNCTION (it alters the input argument) !!!
+
+    utility function to prepare a given dict to be collapsed.
+
+    input dict is assumed to have a 'config' key with an associated
+    dict containing primitive key-value entries defining the config
+    for the dict.
+
+    this function will then return a "standard world" dict by
+    placing all the key-value entries in `config` at the root level
+    of the dict. e.g.
+
+    input:
+    D = {'config': {'version': 1, 'setting': 'blah'}, 'history': [{'rt': 0.23}, {'rt': 0.99}]}
+
+    return:
+    {'version': 1, 'setting': 'blah', 'history': [{'rt': 0.23}, {'rt': 0.99}]}
+    '''
+    D = D_input.pop('config')
+    for k, v in D_input.iteritems():
+        D[k] = v
+    return D
+        
 def collapse_to_dataframe(D_input, *argv):
-    processed = collapse(D_input, *argv)
+
+    if type(D_input.get('config')) is dict:
+        processed = collapse(unravel_config(D_input), *argv)
+    else:
+        processed = collapse(D_input, *argv)
     # process column names and rename any duplicated columns
     hdr = uniquify_header(processed[0])
     if pd:
