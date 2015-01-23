@@ -93,8 +93,33 @@ def collapse(D_input, ORD_COLNAME = u'number'):
                 if   isinstance(val, dict):
                     to_recur.append(RecurStruct(val, depth+1, None, None))
                 elif isinstance(val, list):
+
+                    # COMMENTARY: need to offset the idx of the key by the
+                    # length of the prepend row passed in from higher depths.
+                    # else our insertion in the to_recur loop below will put
+                    # the object earlier in the list than necessary.
+                    # to illustrate:
+                    # in depth 1, if you have
+                    # [conf1, conf2, history, conf3], and history yields rows
+                    # [cf1, cf2, hist1, cf3]
+                    # [cf1, cf2, hist2, cf3],
+                    # via an insertion index of 2
+                    # (so the first row is from [cf1, cf2] + [hist1] + [cf3])
+                    # if in the next generation you have history rows like
+                    # [cf4, histb1]
+                    # [cf4, histb2]
+                    # you ultimately want a concatenated row looking like
+                    # [cf1, cf2, hist1, cf3, cf4, histb1], etc
+                    # but trickiness arises because the insertion index for
+                    # this lower depth row should be 1, RELATIVE TO ITS OWN
+                    # DEPTH. but previously we were still passing index 1. So
+                    # the solution is to pad depth-relative index with the
+                    # depth-absolute offset, as calculated here.  in this
+                    # example, we want to pass 4+1 = 5 to the next recursion.
+                    offset_from_previous_depth = sum([len(hdr) for hdepth, hdr in dhdr.items() if hdepth < depth])
+
                     for ith, row in enumerate(val):
-                        to_recur.append(RecurStruct(row, depth+2, ith, len(prepend)+idx))
+                        to_recur.append(RecurStruct(row, depth+2, ith, offset_from_previous_depth+idx))
                 else:
                     if depth < bottom_depth:
                         prepend.append(val)
