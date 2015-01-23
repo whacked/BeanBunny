@@ -186,6 +186,63 @@ if __name__ == '__main__':
     import string
     import random
 
+    if True:
+        # another test case
+        import sys
+        from termcolor import colored
+        HIST1 = 'history1'
+        HIST2 = 'history2'
+        d = {
+                'config': {'1 config-key': '1 config-value'},
+                HIST1: [
+                    {'2 onset': 123,
+                     '2 answer': 'ab',
+                     HIST2: [
+                         {'3 switch': 'sw1',
+                          '3 char': 'b',
+                          }
+                     ]
+                     },
+                    {'2 onset': 841,
+                     '2 answer': 'we',
+                     HIST2: [
+                         {'3 switch': 'sw3',
+                          '3 char': 'w',
+                          }
+                     ]
+                     },
+                ]
+        }
+
+        print('= ' * 40)
+        col = collapse(unravel_config(d))
+        maxlenk = max(map(lambda s: len(str(s)), col[0]))
+        maxlenv = max(map(lambda s: len(str(s)), col[1]+col[2]))
+
+        dexpected = {
+                '1 config-key': '1 config-value  1 config-value' ,
+                HIST1         : '0               1' ,
+                '2 answer'    : 'ab              we' ,
+                '2 onset'     : '123             841' ,
+                HIST2         : '0               0' ,
+                '3 char'      : 'b               w' ,
+                '3 switch'    : 'sw1             sw3' ,
+        }
+        for key, v1, v2 in zip(col[0], col[1], col[2]):
+            sval = '%s %s' % (
+                str(v1).ljust(maxlenv+1),
+                str(v2).ljust(maxlenv+1).strip(),
+                )
+            sout = '%s %s' % (
+                key.ljust(maxlenk+1),
+                sval)
+
+            if sval == dexpected[key]:
+                print(colored(sout, 'green', None, ['bold']))
+            else:
+                print(colored(sout, 'red', None, ['bold']))
+        sys.exit()
+
     try:
         import faker
     except:
