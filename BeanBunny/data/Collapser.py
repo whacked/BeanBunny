@@ -59,7 +59,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
     '''
     # reduces chance of collision although current code doesn't use
     # keycheck or set() so this doesn't actually do anything now
-    ORD_COLNAME = '\0' + ORD_COLNAME
+    ORD_COLNAME = ORD_COLNAME+'\0'
 
     dhdr = {}
     data = []
@@ -95,7 +95,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
                     to_recur.append(RecurStruct(val, depth+1, None, None))
                 elif isinstance(val, list):
                     for ith, row in enumerate(val):
-                        to_recur.append(RecurStruct(row, depth+2, ith, idx))
+                        to_recur.append(RecurStruct(row, depth+2, ith, len(prepend)+idx))
                 else:
                     if depth < bottom_depth:
                         prepend.append(val)
