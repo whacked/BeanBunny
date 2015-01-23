@@ -66,15 +66,15 @@ def collapse(D_input, ORD_COLNAME = u'number'):
 
     RecurStruct = namedtuple('RecurStruct', ['next_D', 'next_depth', 'insert_item', 'insert_index'])
     def recur(D, depth=1, prepend=None):
-        if isinstance(D, dict):
-            sorted_key_list = list(sorted(D.keys()))
-        elif isinstance(D, list):
-            sorted_key_list = range(len(D))
-        else:
-            raise Exception('input data not dict or list')
 
         if prepend is None:
             prepend = []
+
+        if isinstance(D, dict):
+            sorted_key_list = sorted(D.keys())
+        elif isinstance(D, list):
+            pass
+        else: raise Exception('input data not dict or list')
 
         if depth not in dhdr:
             dhdr[depth] = []
@@ -86,8 +86,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
         to_recur = []
 
         if isinstance(D, list):
-            for idx in sorted_key_list:
-                to_recur.append(RecurStruct(D[idx], depth+1, idx, None))
+            to_recur.extend(RecurStruct(obj, depth+1, idx, None) for idx, obj in enumerate(D))
         else:
             for idx, key in enumerate(sorted_key_list):
                 val = D[key]
