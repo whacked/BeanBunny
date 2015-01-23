@@ -165,8 +165,7 @@ def unravel_config(D_input):
     {'version': 1, 'setting': 'blah', 'history': [{'rt': 0.23}, {'rt': 0.99}]}
     '''
     D = D_input.pop('config')
-    for k, v in D_input.iteritems():
-        D[k] = v
+    D.update(D_input)
     return D
         
 def collapse_to_dataframe(D_input, *argv):
