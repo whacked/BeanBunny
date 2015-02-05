@@ -28,7 +28,7 @@ def compile_header(d):
     '''
     rtn = []
     for k in sorted(d.keys()):
-        rtn.extend(list(sorted(map(lambda s: s.replace('\0', ''), d[k]))))
+        rtn.extend(map(lambda s: s.replace('\0', ''), d[k]))
     return rtn
 
 @cached
