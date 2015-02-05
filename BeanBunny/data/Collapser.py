@@ -303,17 +303,18 @@ if __name__ == '__main__':
                 }
                 ],
                     "config": {
-                        "my-version": 1,
+                        "my-version": 'ver. 1',
                         "a-conf-value": 0.71,
                         "g-conf-value": 1.01,
                         "z-conf-value": 1.5,
+                        "xyz": {'a': 'a8', 'b': 'b1',},
                         }
             }
         expected = '''\
 a-conf-value  0.71          0.71          0.71          0.71          0.71          0.71
 g-conf-value  1.01          1.01          1.01          1.01          1.01          1.01
 history1      0             1             1             1             2             2
-my-version    1             1             1             1             1             1
+my-version    ver. 1        ver. 1        ver. 1        ver. 1        ver. 1        ver. 1
 z-conf-value  1.5           1.5           1.5           1.5           1.5           1.5
 duration      25422         1983          1983          1983          1111          1111
 expected      answer 1      answer 2      answer 2      answer 2      answer 3      answer 3
@@ -322,6 +323,8 @@ history2      0             0             1             2             0         
 received      [ESC]         attempt 2     attempt 2     attempt 2     answer 3      answer 3
 character     s             n             z             y             e             r
 onset         1             0             139           135           0             45
+xyz/a         a8            a8            a8            a8            a8            a8
+xyz/b         b1            b1            b1            b1            b1            b1
         '''.strip()
         dexpected = dict(re.split(r'\s{2,}', line, 1) for line in expected.split('\n'))
 
