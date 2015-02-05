@@ -71,7 +71,8 @@ def collapse(D_input, ORD_COLNAME = u'number'):
             prepend = []
 
         if isinstance(D, dict):
-            sorted_key_list = sorted(D.keys())
+            key_list_with_type = sorted([(type(v) is list and 1 or 0, k) for k, v in D.iteritems()])
+            sorted_key_list = [pair[1] for pair in key_list_with_type]
         elif isinstance(D, list):
             pass
         else: raise Exception('input data not dict or list')
