@@ -89,10 +89,25 @@ def collapse(D_input, ORD_COLNAME = u'number'):
         if isinstance(D, list):
             to_recur.extend(RecurStruct(obj, depth+1, idx, None) for idx, obj in enumerate(D))
         else:
-            for idx, key in enumerate(sorted_key_list):
+            idx = -1
+            # for idx, key in enumerate(sorted_key_list):
+            while idx < len(sorted_key_list)-1:
+                idx += 1
+                key = sorted_key_list[idx]
                 val = D[key]
                 if   isinstance(val, dict):
-                    to_recur.append(RecurStruct(val, depth+1, None, None))
+                    if depth < bottom_depth:
+                        insert_key_list = []
+                        for kk, vv in val.items():
+                            insert_key_list.append(key+'/'+kk)
+                            prepend.append(vv)
+                        updated_key_list = sorted_key_list[:idx] +insert_key_list+ sorted_key_list[idx+1:]
+                        dhdr[depth] = dhdr[depth][:-len(sorted_key_list)] + updated_key_list
+                        sorted_key_list = updated_key_list
+                        idx += len(insert_key_list)-1
+                    else:
+                        # NOTE WARNING XXX this may have problems
+                        to_recur.append(RecurStruct(val, depth+1, None, None))
                 elif isinstance(val, list):
 
                     # COMMENTARY: need to offset the idx of the key by the
