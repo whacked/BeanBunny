@@ -42,20 +42,28 @@ def empty_to_none(val):
 
 def collapse(D_input, ORD_COLNAME = u'number'):
     '''
-    first.2 version (and probably very slow)
+    first.3 version (and probably very slow)
 
-    takes a nested dict of arbitrary depth construct a 2d table for
-    it
+    takes a nested dict of arbitrary depth construct a 2d table for it.
+    children at the same depth are expected to have matching structure.
 
-    children at the same depth are expected to have matching
-    structure
-
-    at present this cannot handle such a structure:
+    at present, if a nested dict is given, as in "k3" in:
     {k1: v1,
      k2: v2,
-     k3: {k3k1: k3v1},
+     k3: {k3k1: k3v1, k3k2: k3v2},
      k4: [...]}
-    the k3 dict will cause breakage.
+    the "k3" dict will get flattened such that a dict with structure
+    {k1: v1,
+     k2: v2,
+     k3/k3k1: k3v1,
+     k3/k3k2: k3v2,
+     k4: [...]}
+    gets operated on instead, and corresponding slash-concatenated keys are
+    returned in the resultant table.
+
+    In order for the current dict-squashing mechanism to work, list elements
+    within the dict are pushed to be processed at the end of the dict element
+    processing loop. See `key_list_with_type` below.
     '''
     # reduces chance of collision although current code doesn't use
     # keycheck or set() so this doesn't actually do anything now
