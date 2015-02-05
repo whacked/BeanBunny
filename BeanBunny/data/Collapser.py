@@ -69,6 +69,10 @@ def collapse(D_input, ORD_COLNAME = u'number'):
     # keycheck or set() so this doesn't actually do anything now
     ORD_COLNAME = ORD_COLNAME+'\0'
 
+    KSEP = '/'
+    def kconcat(*kseq):
+        return KSEP.join(str(k) for k in kseq)
+
     dhdr = {}
     data = []
 
@@ -107,7 +111,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
                     if depth < bottom_depth:
                         insert_key_list = []
                         for kk, vv in val.items():
-                            insert_key_list.append(key+'/'+kk)
+                            insert_key_list.append(kconcat(key, kk))
                             prepend.append(vv)
                         updated_key_list = sorted_key_list[:idx] +insert_key_list+ sorted_key_list[idx+1:]
                         dhdr[depth] = dhdr[depth][:-len(sorted_key_list)] + updated_key_list
