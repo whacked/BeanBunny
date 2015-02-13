@@ -240,138 +240,6 @@ if __name__ == '__main__':
     import string
     import random
 
-    if True:
-        # another test case
-        import sys
-        import re
-        from termcolor import colored
-        HIST1 = '0 history1'
-        HIST2 = '1 history2'
-        d = {
-                'config': {'1 config-key': '1 config-value'},
-                HIST1: [
-                    {'2 onset': 123,
-                     '2 answer': 'ab',
-                     HIST2: [
-                         {'3 switch': 'sw1',
-                          '3 char': 'b',
-                          }
-                     ]
-                     },
-                    {'2 onset': 841,
-                     '2 answer': 'we',
-                     HIST2: [
-                         {'3 switch': 'sw3',
-                          '3 char': 'w',
-                          }
-                     ]
-                     },
-                ]
-        }
-
-        expected = '''\
-0 history1      0               1
-1 config-key    1 config-value  1 config-value
-1 history2      0               0
-2 answer        ab              we
-2 onset         123             841
-3 char          b               w
-3 switch        sw1             sw3
-'''.strip()
-
-        d = {
-            "history": [
-                {
-                    "expected": "answer 1",
-                    "key": "key-1",
-                    "history": [
-                        {
-                            "character": "s",
-                            "onset": 1
-                        }
-                    ],
-                    "received": "[ESC]",
-                    "duration": 25422
-                },
-                {
-                    "expected": "answer 2",
-                    "key": "key-2",
-                    "history": [
-                        {
-                            "character": "n",
-                            "onset": 0
-                        },
-                        {
-                            "character": "z",
-                            "onset": 139
-                        },
-                        {
-                            "character": "y",
-                            "onset": 135
-                        }
-                    ],
-                    "received": "attempt 2",
-                    "duration": 1983
-                },
-                {
-                    "expected": "answer 3",
-                    "key": "key 3",
-                    "history": [
-                        {
-                            "character": "e",
-                            "onset": 0
-                        },
-                        {
-                            "character": "r",
-                            "onset": 45
-                        }
-                    ],
-                    "received": "answer 3",
-                    "duration": 1111
-                }
-                ],
-                    "config": {
-                        "my-version": 'ver. 1',
-                        "a-conf-value": 0.71,
-                        "g-conf-value": 1.01,
-                        "z-conf-value": 1.5,
-                        "xyz": {'a': 'a8', 'b': 'b1',},
-                        }
-            }
-        expected = '''\
-a-conf-value  0.71          0.71          0.71          0.71          0.71          0.71
-g-conf-value  1.01          1.01          1.01          1.01          1.01          1.01
-history1      0             1             1             1             2             2
-my-version    ver. 1        ver. 1        ver. 1        ver. 1        ver. 1        ver. 1
-z-conf-value  1.5           1.5           1.5           1.5           1.5           1.5
-duration      25422         1983          1983          1983          1111          1111
-expected      answer 1      answer 2      answer 2      answer 2      answer 3      answer 3
-key           key-1         key-2         key-2         key-2         key 3         key 3
-history2      0             0             1             2             0             1
-received      [ESC]         attempt 2     attempt 2     attempt 2     answer 3      answer 3
-character     s             n             z             y             e             r
-onset         1             0             139           135           0             45
-xyz/a         a8            a8            a8            a8            a8            a8
-xyz/b         b1            b1            b1            b1            b1            b1
-        '''.strip()
-        dexpected = dict(re.split(r'\s{2,}', line, 1) for line in expected.split('\n'))
-
-        col = collapse(unravel_config(d))
-        maxlenk = max(map(lambda s: len(str(s)), col[0]))
-        maxlenv = max(map(lambda s: len(str(s)), [v for vrow in col for v in vrow]))
-
-        print('= ' * 40)
-        for vlist in zip(uniquify_header(col[0]), *col[1:]):
-            key = vlist[0]
-            sval = (' '.join([str(v).ljust(maxlenv+1) for v in vlist[1:]])).strip()
-
-            if sval == dexpected[key]:
-                print(colored(sval, 'green', None, ['bold']))
-            else:
-                print(colored(sval, 'red', None, ['bold']))
-                print(colored(dexpected[key], 'blue', None, ['bold']))
-        sys.exit()
-
     try:
         import faker
     except:
@@ -385,7 +253,7 @@ xyz/b         b1            b1            b1            b1            b1        
 
         def _random_generator(self):
             if faker:
-                return faker.Faker().username
+                return faker.Faker().user_name
             else:
                 return lambda: ''.join([random.choice(string.ascii_letters) for i in range(6)])
 
