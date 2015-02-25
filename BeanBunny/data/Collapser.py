@@ -73,15 +73,18 @@ def collapse(D_input, ORD_COLNAME = u'number'):
     def kconcat(*kseq):
         return KSEP.join(str(k) for k in kseq)
 
+    bottom_depth = dsu.dict_depth(D_input)
     dhdr = {}
-    data = []
+    def cache_header_get_key_list(depth, D):
+        '''
 
-    RecurStruct = namedtuple('RecurStruct', ['next_D', 'next_depth', 'insert_item', 'insert_index'])
-    def recur(D, depth=1, prepend=None):
+        returns a sorted key list to be used to iterate over
+        for building the row at the current depth level.
 
-        if prepend is None:
-            prepend = []
-
+        SIDE EFFECT: looks through the header specification to
+        see if the keys are present. if not, add them to the
+        corresponding header depth in the specification.
+        '''
         if isinstance(D, dict):
             key_list_with_type = sorted([(type(v) is list and 1 or 0, k) for k, v in D.iteritems()])
             sorted_key_list = [pair[1] for pair in key_list_with_type]
@@ -95,6 +98,15 @@ def collapse(D_input, ORD_COLNAME = u'number'):
                 dhdr[depth].extend(sorted_key_list)
             else:
                 dhdr[depth].append(ORD_COLNAME)
+        return sorted_key_list
+
+    data = []
+
+    RecurStruct = namedtuple('RecurStruct', ['next_D', 'next_depth', 'insert_item', 'insert_index'])
+    def recur(D, depth=1, prepend=None):
+
+        if prepend is None:
+            prepend = []
 
         to_recur = []
 
@@ -102,6 +114,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
             to_recur.extend(RecurStruct(obj, depth+1, idx, None) for idx, obj in enumerate(D))
         else:
             idx = -1
+            sorted_key_list = cache_header_get_key_list(depth, D)
             # for idx, key in enumerate(sorted_key_list):
             while idx < len(sorted_key_list)-1:
                 idx += 1
@@ -146,8 +159,15 @@ def collapse(D_input, ORD_COLNAME = u'number'):
                     # example, we want to pass 4+1 = 5 to the next recursion.
                     offset_from_previous_depth = sum([len(hdr) for hdepth, hdr in dhdr.items() if hdepth < depth])
 
-                    for ith, row in enumerate(val):
-                        to_recur.append(RecurStruct(row, depth+2, ith, offset_from_previous_depth+idx))
+                    # NOTE `empty_to_none()` below seems to handle appends
+                    # of empty iterables into to_recur, so we don't need to
+                    # wazawaza iterate over some precomputed dhdr
+                    if len(val) is 0:
+                        # this actually doesn't seem to change anything
+                        to_recur.append(RecurStruct([], depth+2, 0, offset_from_previous_depth+idx))
+                    else:
+                        for ith, row in enumerate(val):
+                            to_recur.append(RecurStruct(row, depth+2, ith, offset_from_previous_depth+idx))
                 else:
                     if depth < bottom_depth:
                         prepend.append(val)
@@ -161,9 +181,9 @@ def collapse(D_input, ORD_COLNAME = u'number'):
             else:
                 next_prepend = prepend[:insert_index] + [insert_item] + prepend[insert_index:]
             recur(next_D, next_depth, next_prepend)
+
         if depth == bottom_depth:
-            if   isinstance(D, dict):
-                # unify empty list/dict, string into a single None entry.
+            if   isinstance(D, dict): # unify empty list/dict, string into a single None entry.
                 # this avoids collapse output looking like a single row
                 # with '[]' as the value of some empty list column
                 data.append(prepend + [empty_to_none(D[k]) for k in dhdr[depth]])
@@ -174,9 +194,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
             else:
                 data.append(prepend + [D])
 
-    bottom_depth = dsu.dict_depth(D_input)
     recur(D_input)
-    
     return [compile_header(dhdr)] + data
 
 def uniquify_header(hdr):
