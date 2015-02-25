@@ -40,7 +40,7 @@ def empty_to_none(val):
         return None
     return val
 
-def collapse(D_input, ORD_COLNAME = u'number'):
+def collapse(D_input, ORD_COLNAME = u'number', precompute_header = False):
     '''
     first.3 version (and probably very slow)
 
@@ -64,6 +64,13 @@ def collapse(D_input, ORD_COLNAME = u'number'):
     In order for the current dict-squashing mechanism to work, list elements
     within the dict are pushed to be processed at the end of the dict element
     processing loop. See `key_list_with_type` below.
+
+    `precompute_header`: sometimes there are entries that might have empty
+    iterables before other entries of equivalent depth that have non-empty
+    iterables. in these cases we need to precompute the header definitions.
+    This means the datastruct has to be traversed twice. If you are certain
+    about the regularity of the data, such that all entries in all iterables
+    have the same structure, you should not use this.
     '''
     # reduces chance of collision although current code doesn't use
     # keycheck or set() so this doesn't actually do anything now
@@ -73,15 +80,18 @@ def collapse(D_input, ORD_COLNAME = u'number'):
     def kconcat(*kseq):
         return KSEP.join(str(k) for k in kseq)
 
+    bottom_depth = dsu.dict_depth(D_input)
     dhdr = {}
-    data = []
+    def cache_header_get_key_list(depth, D):
+        '''
 
-    RecurStruct = namedtuple('RecurStruct', ['next_D', 'next_depth', 'insert_item', 'insert_index'])
-    def recur(D, depth=1, prepend=None):
+        returns a sorted key list to be used to iterate over
+        for building the row at the current depth level.
 
-        if prepend is None:
-            prepend = []
-
+        SIDE EFFECT: looks through the header specification to
+        see if the keys are present. if not, add them to the
+        corresponding header depth in the specification.
+        '''
         if isinstance(D, dict):
             key_list_with_type = sorted([(type(v) is list and 1 or 0, k) for k, v in D.iteritems()])
             sorted_key_list = [pair[1] for pair in key_list_with_type]
@@ -95,6 +105,15 @@ def collapse(D_input, ORD_COLNAME = u'number'):
                 dhdr[depth].extend(sorted_key_list)
             else:
                 dhdr[depth].append(ORD_COLNAME)
+        return sorted_key_list
+
+    data = []
+
+    RecurStruct = namedtuple('RecurStruct', ['next_D', 'next_depth', 'insert_item', 'insert_index'])
+    def recur(D, depth=1, prepend=None):
+
+        if prepend is None:
+            prepend = []
 
         to_recur = []
 
@@ -102,6 +121,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
             to_recur.extend(RecurStruct(obj, depth+1, idx, None) for idx, obj in enumerate(D))
         else:
             idx = -1
+            sorted_key_list = cache_header_get_key_list(depth, D)
             # for idx, key in enumerate(sorted_key_list):
             while idx < len(sorted_key_list)-1:
                 idx += 1
@@ -146,8 +166,27 @@ def collapse(D_input, ORD_COLNAME = u'number'):
                     # example, we want to pass 4+1 = 5 to the next recursion.
                     offset_from_previous_depth = sum([len(hdr) for hdepth, hdr in dhdr.items() if hdepth < depth])
 
-                    for ith, row in enumerate(val):
-                        to_recur.append(RecurStruct(row, depth+2, ith, offset_from_previous_depth+idx))
+                    # if the list is empty, but something else at the equivalent depth
+                    # is NOT empty, we need to output a row with NaN filled in for the
+                    # corresponding columns.
+                    # if we hit this condition BEFORE the non-empty item is
+                    # processed, and `precompute_header` is False, then `dhdr`
+                    # will not have any knowledge about what the shape of
+                    # the data should look like at that depth, causing an
+                    # Exception.
+                    # if we hit this condition AFTER the non-empty item is
+                    # processed then this will be fine even without
+                    # `precompute_header`. There is currently nothing to
+                    # protect from choosing the wrong option.
+                    if len(val) is 0:
+                        if depth+2 in dhdr:
+                            next_struct = {k: None for k in dhdr[depth+2]}
+                        else:
+                            next_struct = []
+                        to_recur.append(RecurStruct(next_struct, depth+2, 0, offset_from_previous_depth+idx))
+                    else:
+                        for ith, row in enumerate(val):
+                            to_recur.append(RecurStruct(row, depth+2, ith, offset_from_previous_depth+idx))
                 else:
                     if depth < bottom_depth:
                         prepend.append(val)
@@ -161,21 +200,29 @@ def collapse(D_input, ORD_COLNAME = u'number'):
             else:
                 next_prepend = prepend[:insert_index] + [insert_item] + prepend[insert_index:]
             recur(next_D, next_depth, next_prepend)
-        if depth == bottom_depth:
-            if   isinstance(D, dict):
-                # unify empty list/dict, string into a single None entry.
-                # this avoids collapse output looking like a single row
-                # with '[]' as the value of some empty list column
-                data.append(prepend + [empty_to_none(D[k]) for k in dhdr[depth]])
-            # NOTE didn't do any testing with any of these this is just the
-            # data type compatible thing to do
-            elif isinstance(D, list):
-                data.append(prepend + D)
-            else:
-                data.append(prepend + [D])
 
-    bottom_depth = dsu.dict_depth(D_input)
+        if not precompute_header:
+            # if instructed to `precompute_header` we will do a first pass
+            # over the datastructure just to build the entire header
+            # specification without adding any data; on the second pass
+            # then, we will rerun this entire section, but `precompute_header
+            # should be off, THEN we append data.
+            if depth == bottom_depth:
+                if   isinstance(D, dict): # unify empty list/dict, string into a single None entry.
+                    # this avoids collapse output looking like a single row
+                    # with '[]' as the value of some empty list column
+                    data.append(prepend + [empty_to_none(D[k]) for k in dhdr[depth]])
+                # NOTE didn't do any testing with any of these this is just the
+                # data type compatible thing to do
+                elif isinstance(D, list):
+                    data.append(prepend + D)
+                else:
+                    data.append(prepend + [D])
+
     recur(D_input)
+    if precompute_header:
+        precompute_header = False
+        recur(D_input)
     
     return [compile_header(dhdr)] + data
 
