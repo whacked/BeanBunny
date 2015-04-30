@@ -111,6 +111,15 @@ def collapse(D_input, ORD_COLNAME = u'number'):
         to_recur = []
 
         if isinstance(D, list):
+            ### NOTE XXX this is not well tested.
+            # since a list of lists will immediately generate a new depth in
+            # dhdr (because) we will check if the current list's depth has
+            # anything in dhdr.  if not, assume it's the first time we've
+            # reached this depth, and thus, we need to create a column name for
+            # the list.
+            if D and depth not in dhdr:
+                cur_depth_hdr_list = dhdr.get(depth, [])
+                dhdr[depth] = cur_depth_hdr_list + ['%s%s' % (ORD_COLNAME.strip('\0'), 1+len(cur_depth_hdr_list))]
             to_recur.extend(RecurStruct(obj, depth+1, idx, None) for idx, obj in enumerate(D))
         else:
             idx = -1
