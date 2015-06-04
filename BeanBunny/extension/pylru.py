@@ -4,7 +4,6 @@ persistence size. you will need to modify or delete the shelf for
 the new size to be reflected
 '''
 import pylru
-from pylru import lrudecorator
 import functools
 import shelve
 import atexit
@@ -32,7 +31,7 @@ def persisted_lrudecorator(size, shelve_path = DEFAULT_SHELVE_FILENAME):
     if shelve_path not in _dshelve:
         _dshelve[shelve_path] = (shelve.open(shelve_path), {})
     def lruwrap(func):
-        @lrudecorator(size)
+        @pylru.lrudecorator(size)
         @functools.wraps(func)
         def wrapped(*argv, **kw):
             return func(*argv, **kw)
