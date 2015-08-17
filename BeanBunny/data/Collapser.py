@@ -318,11 +318,7 @@ def collapse_2pass(D):
 
             for k, v in D.iteritems():
                 out_data[tuple(trav_path+[k])] = v
-            try:
-                #out.append(tuple(out_data.get(key) for key in key_sorted))
-                out.append(tuple(out_data[key] for key in key_sorted))
-            except Exception as e:
-                raise e
+            out.append(tuple(out_data.get(key) for key in key_sorted))
             return
         # lists need to be processed last
         to_recur = []
