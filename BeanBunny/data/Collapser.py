@@ -64,6 +64,11 @@ def collapse(D_input, ORD_COLNAME = u'number'):
     In order for the current dict-squashing mechanism to work, list elements
     within the dict are pushed to be processed at the end of the dict element
     processing loop. See `key_list_with_type` below.
+
+    ----
+    this version only compiles the header list once for a given depth.
+    this means that if you pass a structure with non-consistent headers
+    in nested dicts, the later dicts will not have their keys saved
     '''
     # reduces chance of collision although current code doesn't use
     # keycheck or set() so this doesn't actually do anything now
@@ -195,7 +200,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
             if   isinstance(D, dict): # unify empty list/dict, string into a single None entry.
                 # this avoids collapse output looking like a single row
                 # with '[]' as the value of some empty list column
-                data.append(prepend + [empty_to_none(D[k]) for k in dhdr[depth]])
+                data.append(prepend + [empty_to_none(D.get(k)) for k in dhdr[depth]])
             # NOTE didn't do any testing with any of these this is just the
             # data type compatible thing to do
             elif isinstance(D, list):
