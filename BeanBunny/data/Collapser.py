@@ -1,4 +1,4 @@
-from collections import Counter, namedtuple
+from collections import Counter, namedtuple, defaultdict
 from functools import wraps
 
 import BeanBunny.data.DataStructUtil as dsu
@@ -267,6 +267,93 @@ def collapse_to_dataframe(D_input, *argv):
     else:
         return [hdr] + processed[1:]
 
+def collapse_2pass(D):
+
+    LIST_INDEX_LABEL = '\0i'
+
+    # first sweep to determine depth of graph
+    # and full set of keys required to build header
+    dkey_level = defaultdict(set)
+    def sweep1(D, trav_path=None):
+        trav_path = trav_path or []
+        for k,v in D.iteritems():
+            dkey_level[tuple(trav_path)].add(k)
+            if isinstance(v, dict):
+                sweep1(v, trav_path+[k])
+            elif isinstance(v, list):
+                for i, vv in enumerate(v):
+                    sweep1(vv, trav_path+[k,LIST_INDEX_LABEL])
+    sweep1(D)
+
+    # sweep once to determine uniques,
+    # i.e. to see if we need to add discriminator
+    # numbers to end of header labels
+    dkey_count = defaultdict(int)
+    max_list_depth = 0
+    for trav_path, level_set in dkey_level.items():
+        for k in level_set:
+            dkey_count[k] += 1
+        max_list_depth = max(max_list_depth, trav_path.count(LIST_INDEX_LABEL))
+    # build header
+    header_mapping = {}
+    for n, trav_path in enumerate(sorted(dkey_level.keys()), start=1):
+        for k in dkey_level[trav_path]:
+            if dkey_count[k] > 1:
+                label = '{}{}'.format(k, n)
+            else:
+                label = k
+            header_mapping[tuple(list(trav_path)+[k])] = label
+
+    header_sorted = sorted(header_mapping.items(), key=lambda k: (len(k[0]), k[0]))[:]
+    header_list = [header for _,header in header_sorted]
+    key_sorted = [lvl_lbl for lvl_lbl,_ in header_sorted]
+
+    # sweep again, to building the output table
+    out = []
+    def sweep2(D, trav_path=None, trav_data=None, list_depth=0):
+        trav_path = trav_path or []
+        trav_data = trav_data or {}
+        if list_depth == max_list_depth:
+            out_data = trav_data.copy()
+
+            for k, v in D.iteritems():
+                out_data[tuple(trav_path+[k])] = v
+            try:
+                #out.append(tuple(out_data.get(key) for key in key_sorted))
+                out.append(tuple(out_data[key] for key in key_sorted))
+            except Exception as e:
+                raise e
+            return
+        # lists need to be processed last
+        to_recur = []
+        for k,v in D.iteritems():
+            if isinstance(v, dict):
+                # has not been tested yet
+                sweep2(v, trav_path+[k], trav_data, list_depth)
+            elif isinstance(v, list):
+                # questionable
+                trav_data[tuple(trav_path+[k])] = None
+                to_recur.append((k,v))
+            else:
+                trav_data[tuple(trav_path+[k])] = v
+        for k,v in to_recur:
+            for i, vv in enumerate(v):
+                td = trav_data.copy()
+                td[tuple(trav_path+[k])] = i
+                sweep2(
+                    vv,
+                    trav_path+[k,LIST_INDEX_LABEL],
+                    td,
+                    list_depth+1)
+    sweep2(D)
+
+    out.insert(0, header_list)
+    return out
+
+def collapse_to_dataframe_2pass(D):
+    allrow = collapse_2pass(D)
+    return pd.DataFrame(allrow[1:], columns=allrow[0])
+
 if __name__ == '__main__':
 
     import string
@@ -336,20 +423,29 @@ if __name__ == '__main__':
     except:
         input()
 
-    processed = collapse(gen.D)
-    hdr_list  = uniquify_header(processed[0])
-    padding = 2
-    len_list = [len(hdr) for hdr in hdr_list]
-    fmt_list = [('{:<%s}'+' '*padding)%(x) for x in len_list]
-    nprint = 0
-    for row in [hdr_list] + processed[1:]:
-        line = ''.join([fmt.format(val) for fmt, val in zip(fmt_list, row)])
-        print(line)
-        nprint += 1
-        if nprint == 1:
-            print('-' * sum([x+padding for x in len_list]))
-        if nprint > 10: break
-    print(nprint-1, 'printed')
+    NPRINT = 20
+    for desc, fn in [('SINGLE PASS', collapse),
+                     ('TWO PASS', collapse_2pass)]:
 
+        print('\n')
+        heading = '|| %s VERSION ||' % desc
+        print('_'*(len(heading)))
+        print(heading)
+        print('`'*(len(heading)))
+        processed = fn(gen.D)
+        hdr_list  = uniquify_header(processed[0])
+        padding = 2
+        len_list = [len(hdr) for hdr in hdr_list]
+        fmt_list = [('{:<%s}'+' '*padding)%(x) for x in len_list]
+        nprint = 0
+        for row in [hdr_list] + processed[1:]:
+            line = ''.join([fmt.format(val) for fmt, val in zip(fmt_list, row)])
+            print(line)
+            nprint += 1
+            if nprint == 1:
+                print('-' * sum([x+padding for x in len_list]))
+            if nprint > NPRINT: break
+        print('---------------')
+        print(nprint-1, 'printed')
 
 
