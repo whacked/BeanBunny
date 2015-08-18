@@ -276,6 +276,15 @@ def collapse_2pass(D):
     dkey_level = defaultdict(set)
     def sweep1(D, trav_path=None):
         trav_path = trav_path or []
+        # not sure if good idea. doing this turns a list of primitives, like
+        # 'choice': [1,2,3] into an as-is representation, meaning that the
+        # resulting table gets a 'choice' column with a row value of '[1,2,3]'.
+        # 
+        # this has not been tested beyond being the quickest modification that
+        # makes the Karpicke multiplication verification task data not raise an
+        # exception
+        if not isinstance(D, dict):
+            return
         for k,v in D.iteritems():
             dkey_level[tuple(trav_path)].add(k)
             if isinstance(v, dict):
