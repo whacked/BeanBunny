@@ -342,6 +342,17 @@ def collapse_2pass(D):
             else:
                 trav_data[tuple(trav_path+[k])] = v
         for k,v in to_recur:
+            if len(v) is 0 and list_depth < max_list_depth:
+                # WARNING NOTE XXX
+                # risky: assumes successive nested data structs
+                # are ALL dict
+                td = trav_data.copy()
+                td[tuple(trav_path+[k])] = None
+                sweep2(
+                    {},
+                    trav_path+[k,LIST_INDEX_LABEL],
+                    td,
+                    list_depth+1)
             for i, vv in enumerate(v):
                 td = trav_data.copy()
                 td[tuple(trav_path+[k])] = i
