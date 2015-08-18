@@ -317,7 +317,7 @@ def collapse_2pass(D):
     header_list = [header for _,header in header_sorted]
     key_sorted = [lvl_lbl for lvl_lbl,_ in header_sorted]
 
-    # sweep again, to building the output table
+    # sweep again, to build output table
     out = []
     def sweep2(D, trav_path=None, trav_data=None, list_depth=0):
         trav_path = trav_path or []
@@ -347,15 +347,16 @@ def collapse_2pass(D):
                 # risky: assumes successive nested data structs
                 # are ALL dict
                 td = trav_data.copy()
-                td[tuple(trav_path+[k])] = None
+                td[tuple(trav_path+[k])] = 0
                 sweep2(
                     {},
                     trav_path+[k,LIST_INDEX_LABEL],
                     td,
                     list_depth+1)
-            for i, vv in enumerate(v):
+            # HUMAN-friendly indexing
+            for n, vv in enumerate(v, start=1):
                 td = trav_data.copy()
-                td[tuple(trav_path+[k])] = i
+                td[tuple(trav_path+[k])] = n
                 sweep2(
                     vv,
                     trav_path+[k,LIST_INDEX_LABEL],
