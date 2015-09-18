@@ -181,7 +181,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
                         # this actually doesn't seem to change anything
                         to_recur.append(RecurStruct([], depth+2, 0, offset_from_previous_depth+idx))
                     else:
-                        for ith, row in enumerate(val):
+                        for ith, row in enumerate(val, start=1):
                             to_recur.append(RecurStruct(row, depth+2, ith, offset_from_previous_depth+idx))
                 else:
                     if depth < bottom_depth:
