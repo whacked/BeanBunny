@@ -96,6 +96,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
         elif isinstance(D, list):
             pass
         else: raise Exception('input data not dict or list')
+        sorted_key_list.sort()
 
         if depth not in dhdr:
             dhdr[depth] = []
