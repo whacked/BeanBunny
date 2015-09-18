@@ -231,8 +231,6 @@ def uniquify_header(hdr):
 
 def unravel_config(D_input):
     '''
-    !!! NOT A SAFE FUNCTION (it alters the input argument) !!!
-
     utility function to prepare a given dict to be collapsed.
 
     input dict is assumed to have a 'config' key with an associated
@@ -249,18 +247,16 @@ def unravel_config(D_input):
     return:
     {'version': 1, 'setting': 'blah', 'history': [{'rt': 0.23}, {'rt': 0.99}]}
     '''
-    D = D_input['config'].copy()
+    if type(D_input.get('config')) is not dict:
+        return D_input
+    D = D_input.get('config', {}).copy()
     for k, v in D_input.iteritems():
         if k == 'config': continue
         D[k] = v
     return D
         
 def collapse_to_dataframe(D_input, *argv):
-
-    if type(D_input.get('config')) is dict:
-        processed = collapse(unravel_config(D_input), *argv)
-    else:
-        processed = collapse(D_input, *argv)
+    processed = collapse(unravel_config(D_input), *argv)
     # process column names and rename any duplicated columns
     hdr = uniquify_header(processed[0])
     if pd:
