@@ -66,6 +66,12 @@ def test_1pass_2pass_ideal_equality():
     gen = Gen()
     gen.generate_nested(3)
     print(gen.nresponse, "generated")
+    # doing this will break the equivalence
+    # due to how additional nested dicts are
+    # processed across versions.
+    # gen.D['config'] = {'a': 1, 'b': 'mouse'}
+    # adding this will equalize it
+    # gen.D = Collapser.unravel_config(gen.D)
 
     out = []
     NPRINT = 20

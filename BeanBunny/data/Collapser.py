@@ -365,4 +365,6 @@ def collapse_2pass(D):
     return out
 
 def collapse_to_dataframe_2pass(D):
+    processed = collapse_2pass(unravel_config(D))
+    return pd.DataFrame(processed[1:], columns=processed[0])
 
