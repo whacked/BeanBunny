@@ -42,10 +42,10 @@ def check_dataset_consistency(D, level = 0):
         elif isinstance(dd, dict):
             if dschema is None:
                 dschema = {}
-                for k, v in dd.iteritems():
+                for k, v in dd.items():
                     dschema[k] = type(v)
                 continue
-            for k, vtype in dschema.iteritems():
+            for k, vtype in dschema.items():
                 if k not in dd or type(dd[k]) != vtype:
                     return False
     return dschema

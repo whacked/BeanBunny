@@ -56,7 +56,7 @@ def test_1pass_2pass_ideal_equality():
             print(nprint-1, 'printed')
         out.append('\n'.join(buf))
     assert out[0] == out[1]
-    print '1pass and 2pass are the same!'
+    print('1pass and 2pass are the same!')
 
 
 if __name__ == '__main__':

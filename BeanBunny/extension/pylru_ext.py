@@ -44,13 +44,13 @@ def persisted_lrudecorator(size, shelve_path = DEFAULT_SHELVE_FILENAME):
         if wrapped.__name__ in db:
             funcd = db[wrapped.__name__]
 
-            for argt, dlnd in funcd.iteritems():
+            for argt, dlnd in funcd.items():
                 dln = dict_to_dlnode(dlnd)
                 dln.key = argt
                 wrapped.cache.table[argt] = dln
                 wrapped.cache.head = dln
             mapping = wrapped.cache.table
-            for argt, dlnd in funcd.iteritems():
+            for argt, dlnd in funcd.items():
                 dln = mapping[argt]
                 dln.prev = dlnd['prev'] and mapping[dlnd['prev']] or wrapped.cache.head
                 if dlnd['next'] is None:
@@ -64,10 +64,10 @@ def persisted_lrudecorator(size, shelve_path = DEFAULT_SHELVE_FILENAME):
 
 @atexit.register
 def persist_all():
-    for shelve_path, (db, funcmap) in _dshelve.iteritems():
-        for func_name, func in funcmap.iteritems():
+    for shelve_path, (db, funcmap) in _dshelve.items():
+        for func_name, func in funcmap.items():
             funcd = {}
-            for argt, dlnode in func.cache.table.iteritems():
+            for argt, dlnode in func.cache.table.items():
                 funcd[argt] = dlnode_to_dict(dlnode)
             db[func_name] = funcd
         db.close()

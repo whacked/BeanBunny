@@ -91,7 +91,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
         corresponding header depth in the specification.
         '''
         if isinstance(D, dict):
-            key_list_with_type = sorted([(type(v) is list and 1 or 0, k) for k, v in D.iteritems()])
+            key_list_with_type = sorted([(type(v) is list and 1 or 0, k) for k, v in D.items()])
             sorted_key_list = [pair[1] for pair in key_list_with_type]
         elif isinstance(D, list):
             pass
@@ -250,7 +250,7 @@ def unravel_config(D_input):
     if type(D_input.get('config')) is not dict:
         return D_input
     D = D_input.get('config', {}).copy()
-    for k, v in D_input.iteritems():
+    for k, v in D_input.items():
         if k == 'config': continue
         D[k] = v
     return D
@@ -282,7 +282,7 @@ def collapse_2pass(D):
         # exception
         if not isinstance(D, dict):
             return
-        for k,v in D.iteritems():
+        for k,v in D.items():
             dkey_level[tuple(trav_path)].add(k)
             if isinstance(v, dict):
                 sweep1(v, trav_path+[k])
@@ -322,13 +322,13 @@ def collapse_2pass(D):
         if list_depth == max_list_depth:
             out_data = trav_data.copy()
 
-            for k, v in D.iteritems():
+            for k, v in D.items():
                 out_data[tuple(trav_path+[k])] = v
             out.append(tuple(out_data.get(key) for key in key_sorted))
             return
         # lists need to be processed last
         to_recur = []
-        for k,v in D.iteritems():
+        for k,v in D.items():
             if isinstance(v, dict):
                 # has not been tested yet
                 sweep2(v, trav_path+[k], trav_data, list_depth)
