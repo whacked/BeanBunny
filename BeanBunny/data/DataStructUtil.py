@@ -55,14 +55,9 @@ try:
     import operator
     import decimal
 
-    try:
-        unicodeclass = unicode
-    except:
-        # python 3
-        unicodeclass = str
     SmartTypeMap = {
             decimal.Decimal: lambda _: np.float,
-            unicodeclass: lambda ls: "|S%s" % max(map(len, ls)),
+            str: lambda ls: "|S%s" % max(map(len, ls)),
             }
     def smart_dataset_to_table(D):
         # infer base structure
@@ -82,7 +77,6 @@ def generate_random_datastruct(max_depth = 1, allow_type = None):
     """
     currently:
     `unicode` returns a `str`
-    `long` returns a `int`
     """
     if faker is None: return {}
 
@@ -95,14 +89,12 @@ def generate_random_datastruct(max_depth = 1, allow_type = None):
     MIN_OBJ_LEN, MAX_OBJ_LEN = (1, 4)
     obj_len = MIN_OBJ_LEN + random.randint(0, MAX_OBJ_LEN-MIN_OBJ_LEN)
 
-    if mytype == int or mytype == long:
-        return random.randint(0, 10000)
+    if mytype == int:
+        return random.randint(0, 2e30)
     elif mytype == float:
         return random.random()
     elif mytype == str:
         return faker.Faker().user_name()
-    elif mytype == unicodeclass:
-        return unicodeclass(faker.Faker().user_name())
     elif mytype == list:
         # should parametrize this into arglist...
         rtn = []
@@ -187,12 +179,12 @@ def recursive_fuzzer(refds, type_change = None, level = 0):
         elif type(type_change) == list:
             return generate_random_datastruct(allow_type = type_change)
         elif type_change == "different":
-            if type_refds in (int, long):
+            if type_refds == int:
                 return generate_random_datastruct(allow_type = [float, str])
             elif type_refds == float:
                 return generate_random_datastruct(allow_type = [int, str])
-            elif type_refds in (str, unicodeclass):
-                return generate_random_datastruct(allow_type = [int, long, float])
+            elif type_refds == str:
+                return generate_random_datastruct(allow_type = [int, float])
             else:
                 raise TypeError("unprocessed type: %s" % type_refds)
         else:
