@@ -8,6 +8,7 @@ that
 """
 
 import random
+import string
 try:
     import faker
 except ImportError as e:
@@ -73,12 +74,28 @@ except ImportError as e:
     print("error on import: %s\n%s will not function." % (e, smart_dataset_to_table.__name__))
 
 
-def generate_random_datastruct(max_depth = 1, allow_type = None):
-    """
-    currently:
-    `unicode` returns a `str`
-    """
-    if faker is None: return {}
+if faker is None:
+    def generate_random_string(min_length = 1, max_length = 50):
+        strlen = random.randint(min_length, max_length)
+        return ''.join(
+            random.choice(string.printable)
+            for _ in range(strlen))
+else:
+    def generate_random_string(min_length = 1, max_length = 50):
+        return faker.Faker().user_name()
+
+
+def identity(x):
+    return x
+
+
+def generate_random_datastruct(
+        max_depth = 1,
+        allow_type = None,
+        # dict only
+        key_transformer = identity,
+        value_transformer = identity,
+    ):
 
     if allow_type is None:
         allow_type = [int, float, str, list, dict]
@@ -94,14 +111,15 @@ def generate_random_datastruct(max_depth = 1, allow_type = None):
     elif mytype == float:
         return random.random()
     elif mytype == str:
-        return faker.Faker().user_name()
+        return generate_random_string()
     elif mytype == list:
         # should parametrize this into arglist...
         rtn = []
         for i in range(obj_len):
             # shall we create another level?
             if max_depth > 1 and random.random() > 0.5:
-                val_deep = generate_random_datastruct(max_depth - 1, allow_type)
+                val_deep = generate_random_datastruct(max_depth - 1, allow_type,
+                        key_transformer, value_transformer)
                 if type(val_deep) in (list, dict):
                     val = val_deep
                 else:
@@ -117,7 +135,8 @@ def generate_random_datastruct(max_depth = 1, allow_type = None):
             k = generate_random_datastruct(max_depth = 1, allow_type = [str,int])
             # shall we create another level?
             if max_depth > 1 and random.random() > 0.5:
-                val_deep = generate_random_datastruct(max_depth - 1, allow_type)
+                val_deep = generate_random_datastruct(max_depth - 1, allow_type,
+                        key_transformer, value_transformer)
                 if type(val_deep) == dict:
                     val = val_deep
                 else:
@@ -125,9 +144,11 @@ def generate_random_datastruct(max_depth = 1, allow_type = None):
                     val = {k_deep: val_deep}
             else:
                 val = generate_random_datastruct(max_depth = 1, allow_type = [int, float, str])
-            rtn[k] = val
+            xk = key_transformer(k)
+            rtn[xk] = value_transformer(val)
         return rtn
     
+
 def recursive_fuzzer(refds, type_change = None, level = 0):
     """
     recursively corrupt the data in refds by replacing it with
@@ -190,6 +211,7 @@ def recursive_fuzzer(refds, type_change = None, level = 0):
         else:
             return generate_random_datastruct(allow_type = [type_change])
 
+
 def recursive_type_compare(d1, d2):
     """
     returns True if d1 and d2 have the same type:
@@ -209,8 +231,6 @@ def recursive_type_compare(d1, d2):
         return all([recursive_type_compare(d1[k1], d2[k1]) for k1 in d1])
     else:
         return type(d1) == type(d2)
-
-
 
 
 def dict_depth(dc, DEPTH = 1):
@@ -267,6 +287,7 @@ def dict_depth(dc, DEPTH = 1):
             rtn_depth = max(rtn_depth, dict_depth(next, DEPTH + 1) or 0)
     return rtn_depth
 
+
 def dict_breadth(mixed):
     """
     for test, expect in [
@@ -291,7 +312,6 @@ def dict_breadth(mixed):
         if isinstance(v, (tuple, list, dict)):
             lslevel.append(dict_breadth(v))
     return max(breadth, sum(lslevel))
-
 
 
 def extract_obj_at_depth_offset(dc, offset = 0):
@@ -321,7 +341,6 @@ def extract_obj_at_depth_offset(dc, offset = 0):
         for subdc in lsnext:
             rtn.extend([extracted for extracted in extract_obj_at_depth_offset(subdc, offset-1) if hasattr(extracted, "__iter__")])
     return rtn
-
 
 
 def sliding_subset_check(sub, SUP, empty_set = None, tolerate_key_val = None):
@@ -494,7 +513,6 @@ def get_add_op(d0, d1, searchpath = ""):
             print("expected:", expect)
             print("got", actual)
             break        
-
     """
     # skip for speedup
     # if not is_obj_subset(d0, d1):
@@ -550,8 +568,4 @@ class DictDiffer(object):
         return set(o for o in self.intersect if self.base[o] == self.comp[o])
     def __str__(self):
         return "\n".join([":: %s ::\n%s" % (fn, getattr(self, fn)()) for fn in ("added","removed","changed","unchanged") if getattr(self, fn)()])
-
-
-
-
 
