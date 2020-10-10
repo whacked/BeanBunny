@@ -1,4 +1,4 @@
-from collections import Counter, namedtuple
+from collections import Counter, namedtuple, defaultdict
 from functools import wraps
 
 import BeanBunny.data.DataStructUtil as dsu
@@ -64,6 +64,11 @@ def collapse(D_input, ORD_COLNAME = u'number'):
     In order for the current dict-squashing mechanism to work, list elements
     within the dict are pushed to be processed at the end of the dict element
     processing loop. See `key_list_with_type` below.
+
+    ----
+    this version only compiles the header list once for a given depth.
+    this means that if you pass a structure with non-consistent headers
+    in nested dicts, the later dicts will not have their keys saved
     '''
     # reduces chance of collision although current code doesn't use
     # keycheck or set() so this doesn't actually do anything now
@@ -86,11 +91,12 @@ def collapse(D_input, ORD_COLNAME = u'number'):
         corresponding header depth in the specification.
         '''
         if isinstance(D, dict):
-            key_list_with_type = sorted([(type(v) is list and 1 or 0, k) for k, v in D.iteritems()])
+            key_list_with_type = sorted([(type(v) is list and 1 or 0, k) for k, v in D.items()])
             sorted_key_list = [pair[1] for pair in key_list_with_type]
         elif isinstance(D, list):
             pass
         else: raise Exception('input data not dict or list')
+        sorted_key_list.sort()
 
         if depth not in dhdr:
             dhdr[depth] = []
@@ -111,6 +117,15 @@ def collapse(D_input, ORD_COLNAME = u'number'):
         to_recur = []
 
         if isinstance(D, list):
+            ### NOTE XXX this is not well tested.
+            # since a list of lists will immediately generate a new depth in
+            # dhdr (because) we will check if the current list's depth has
+            # anything in dhdr.  if not, assume it's the first time we've
+            # reached this depth, and thus, we need to create a column name for
+            # the list.
+            if D and depth not in dhdr:
+                cur_depth_hdr_list = dhdr.get(depth, [])
+                dhdr[depth] = cur_depth_hdr_list + ['%s%s' % (ORD_COLNAME.strip('\0'), 1+len(cur_depth_hdr_list))]
             to_recur.extend(RecurStruct(obj, depth+1, idx, None) for idx, obj in enumerate(D))
         else:
             idx = -1
@@ -166,7 +181,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
                         # this actually doesn't seem to change anything
                         to_recur.append(RecurStruct([], depth+2, 0, offset_from_previous_depth+idx))
                     else:
-                        for ith, row in enumerate(val):
+                        for ith, row in enumerate(val, start=1):
                             to_recur.append(RecurStruct(row, depth+2, ith, offset_from_previous_depth+idx))
                 else:
                     if depth < bottom_depth:
@@ -186,7 +201,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
             if   isinstance(D, dict): # unify empty list/dict, string into a single None entry.
                 # this avoids collapse output looking like a single row
                 # with '[]' as the value of some empty list column
-                data.append(prepend + [empty_to_none(D[k]) for k in dhdr[depth]])
+                data.append(prepend + [empty_to_none(D.get(k)) for k in dhdr[depth]])
             # NOTE didn't do any testing with any of these this is just the
             # data type compatible thing to do
             elif isinstance(D, list):
@@ -216,8 +231,6 @@ def uniquify_header(hdr):
 
 def unravel_config(D_input):
     '''
-    !!! NOT A SAFE FUNCTION (it alters the input argument) !!!
-
     utility function to prepare a given dict to be collapsed.
 
     input dict is assumed to have a 'config' key with an associated
@@ -234,18 +247,16 @@ def unravel_config(D_input):
     return:
     {'version': 1, 'setting': 'blah', 'history': [{'rt': 0.23}, {'rt': 0.99}]}
     '''
-    D = D_input['config'].copy()
-    for k, v in D_input.iteritems():
+    if type(D_input.get('config')) is not dict:
+        return D_input
+    D = D_input.get('config', {}).copy()
+    for k, v in D_input.items():
         if k == 'config': continue
         D[k] = v
     return D
         
 def collapse_to_dataframe(D_input, *argv):
-
-    if type(D_input.get('config')) is dict:
-        processed = collapse(unravel_config(D_input), *argv)
-    else:
-        processed = collapse(D_input, *argv)
+    processed = collapse(unravel_config(D_input), *argv)
     # process column names and rename any duplicated columns
     hdr = uniquify_header(processed[0])
     if pd:
@@ -253,89 +264,107 @@ def collapse_to_dataframe(D_input, *argv):
     else:
         return [hdr] + processed[1:]
 
-if __name__ == '__main__':
+def collapse_2pass(D):
 
-    import string
-    import random
+    LIST_INDEX_LABEL = '\0i'
 
-    try:
-        import faker
-    except:
-        faker = None
+    # first sweep to determine depth of graph
+    # and full set of keys required to build header
+    dkey_level = defaultdict(set)
+    def sweep1(D, trav_path=None):
+        trav_path = trav_path or []
+        # not sure if good idea. doing this turns a list of primitives, like
+        # 'choice': [1,2,3] into an as-is representation, meaning that the
+        # resulting table gets a 'choice' column with a row value of '[1,2,3]'.
+        # 
+        # this has not been tested beyond being the quickest modification that
+        # makes the Karpicke multiplication verification task data not raise an
+        # exception
+        if not isinstance(D, dict):
+            return
+        for k,v in D.items():
+            dkey_level[tuple(trav_path)].add(k)
+            if isinstance(v, dict):
+                sweep1(v, trav_path+[k])
+            elif isinstance(v, list):
+                for i, vv in enumerate(v):
+                    sweep1(vv, trav_path+[k,LIST_INDEX_LABEL])
+    sweep1(D)
 
-    class Gen:
-        '''
-        generate random nested data to test the collapser
-        
-        '''
-
-        def _random_generator(self):
-            if faker:
-                return faker.Faker().user_name
+    # sweep once to determine uniques,
+    # i.e. to see if we need to add discriminator
+    # numbers to end of header labels
+    dkey_count = defaultdict(int)
+    max_list_depth = 0
+    for trav_path, level_set in dkey_level.items():
+        for k in level_set:
+            dkey_count[k] += 1
+        max_list_depth = max(max_list_depth, trav_path.count(LIST_INDEX_LABEL))
+    # build header
+    header_mapping = {}
+    for n, trav_path in enumerate(sorted(dkey_level.keys()), start=1):
+        for k in dkey_level[trav_path]:
+            if dkey_count[k] > 1:
+                label = '{}{}'.format(k, n)
             else:
-                return lambda: ''.join([random.choice(string.ascii_letters) for i in range(6)])
+                label = k
+            header_mapping[tuple(list(trav_path)+[k])] = label
 
-        def __init__(self):
-            self.nresponse = 0
-            self.D = None
-            self.makesomething = self._random_generator()
+    header_sorted = sorted(header_mapping.items(), key=lambda k: (len(k[0]), k[0]))[:]
+    header_list = [header for _,header in header_sorted]
+    key_sorted = [lvl_lbl for lvl_lbl,_ in header_sorted]
 
-        def generate_child(self):
-            return dict(
-                    response = self.makesomething(),
-                    rt = random.randint(10,99),
-                    )
+    # sweep again, to build output table
+    out = []
+    def sweep2(D, trav_path=None, trav_data=None, list_depth=0):
+        trav_path = trav_path or []
+        trav_data = trav_data or {}
+        if list_depth == max_list_depth:
+            out_data = trav_data.copy()
 
-        def generate_parent(self, depth):
-            return {
-                    'setting': self.makesomething()[:6],
-                    'history': [],
-                    }
+            for k, v in D.items():
+                out_data[tuple(trav_path+[k])] = v
+            out.append(tuple(out_data.get(key) for key in key_sorted))
+            return
+        # lists need to be processed last
+        to_recur = []
+        for k,v in D.items():
+            if isinstance(v, dict):
+                # has not been tested yet
+                sweep2(v, trav_path+[k], trav_data, list_depth)
+            elif isinstance(v, list):
+                # questionable
+                trav_data[tuple(trav_path+[k])] = None
+                to_recur.append((k,v))
+            else:
+                trav_data[tuple(trav_path+[k])] = v
+        for k,v in to_recur:
+            if len(v) is 0 and list_depth < max_list_depth:
+                # WARNING NOTE XXX
+                # risky: assumes successive nested data structs
+                # are ALL dict
+                td = trav_data.copy()
+                td[tuple(trav_path+[k])] = 0
+                sweep2(
+                    {},
+                    trav_path+[k,LIST_INDEX_LABEL],
+                    td,
+                    list_depth+1)
+            # HUMAN-friendly indexing
+            for n, vv in enumerate(v, start=1):
+                td = trav_data.copy()
+                td[tuple(trav_path+[k])] = n
+                sweep2(
+                    vv,
+                    trav_path+[k,LIST_INDEX_LABEL],
+                    td,
+                    list_depth+1)
+    sweep2(D)
 
-        def generate_nested(self, min_depth = 2, max_depth = 5):
-            if self.D:
-                return self.D
+    out.insert(0, header_list)
+    return out
 
-            self.nresponse = 0
-            mydepth = random.randint(min_depth, max_depth)
-
-            def recur(remaining = 0):
-
-                if remaining is 0:
-                    self.nresponse += 1
-                    myd = self.generate_child()
-                else:
-                    myd = self.generate_parent(mydepth-remaining)
-                    for iresponse in range(random.randint(2,7)):
-                        myd['history'].append(recur(remaining - 1))
-                return myd
-
-            self.D = recur(mydepth)
-            return self.D
-
-
-    gen = Gen()
-    gen.generate_nested(3)
-    print(gen.nresponse, "generated")
-    try:
-        raw_input()
-    except:
-        input()
-
-    processed = collapse(gen.D)
-    hdr_list  = uniquify_header(processed[0])
-    padding = 2
-    len_list = [len(hdr) for hdr in hdr_list]
-    fmt_list = [('{:<%s}'+' '*padding)%(x) for x in len_list]
-    nprint = 0
-    for row in [hdr_list] + processed[1:]:
-        line = ''.join([fmt.format(val) for fmt, val in zip(fmt_list, row)])
-        print(line)
-        nprint += 1
-        if nprint == 1:
-            print('-' * sum([x+padding for x in len_list]))
-        if nprint > 10: break
-    print(nprint-1, 'printed')
-
-
+def collapse_to_dataframe_2pass(D):
+    processed = collapse_2pass(unravel_config(D))
+    return pd.DataFrame(processed[1:], columns=processed[0])
 

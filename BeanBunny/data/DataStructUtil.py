@@ -43,10 +43,10 @@ def check_dataset_consistency(D, level = 0):
         elif isinstance(dd, dict):
             if dschema is None:
                 dschema = {}
-                for k, v in dd.iteritems():
+                for k, v in dd.items():
                     dschema[k] = type(v)
                 continue
-            for k, vtype in dschema.iteritems():
+            for k, vtype in dschema.items():
                 if k not in dd or type(dd[k]) != vtype:
                     return False
     return dschema
@@ -569,3 +569,52 @@ class DictDiffer(object):
     def __str__(self):
         return "\n".join([":: %s ::\n%s" % (fn, getattr(self, fn)()) for fn in ("added","removed","changed","unchanged") if getattr(self, fn)()])
 
+
+class DictGenerator:
+    '''
+    generate random nested data to test the collapser
+    '''
+
+    def _random_generator(self):
+        if faker:
+            return faker.Faker().user_name
+        else:
+            return lambda: ''.join([random.choice(string.ascii_letters) for i in range(6)])
+
+    def __init__(self):
+        self.nresponse = 0
+        self.D = None
+        self.makesomething = self._random_generator()
+
+    def generate_child(self):
+        return dict(
+                response = self.makesomething(),
+                rt = random.randint(10,99),
+                )
+
+    def generate_parent(self, depth):
+        return {
+                'setting': self.makesomething()[:6],
+                'history': [],
+                }
+
+    def generate_nested(self, min_depth = 2, max_depth = 5):
+        if self.D:
+            return self.D
+
+        self.nresponse = 0
+        mydepth = random.randint(min_depth, max_depth)
+
+        def recur(remaining = 0):
+
+            if remaining is 0:
+                self.nresponse += 1
+                myd = self.generate_child()
+            else:
+                myd = self.generate_parent(mydepth-remaining)
+                for iresponse in range(random.randint(2,7)):
+                    myd['history'].append(recur(remaining - 1))
+            return myd
+
+        self.D = recur(mydepth)
+        return self.D

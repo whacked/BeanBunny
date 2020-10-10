@@ -1,0 +1,8 @@
+py.test \
+        -s \
+        --verbose \
+        --cov-report html \
+        --cov-report annotate \
+        --html _report/pytest.html \
+        --cov=BeanBunny \
+        --cov-config .coveragerc
