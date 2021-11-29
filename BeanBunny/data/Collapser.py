@@ -3,7 +3,6 @@ from functools import wraps
 
 import BeanBunny.data.DataStructUtil as dsu
 import logging
-import toolz as z
 
 
 try:
@@ -371,6 +370,19 @@ def collapse_to_dataframe_2pass(D):
     processed = collapse_2pass(unravel_config(D))
     return pd.DataFrame(processed[1:], columns=processed[0])
 
+def flatten(l):  # ref https://stackoverflow.com/a/2158532
+    for el in l:
+        if isinstance(el, list):
+            yield from flatten(el)
+        else:
+            yield el
+
+def get_in(D, path):
+    if len(path) == 0:
+        return D
+    if path[0] == [] and isinstance(D, list):
+        return [get_in(sub_D, path[1:]) for sub_D in D]
+    return get_in(D.get(path[0]), path[1:])
 
 def tree2tabular(tree):
     sub_item_paths = dsu.walk_dict_keys(tree)
@@ -400,12 +412,13 @@ def tree2tabular(tree):
             add_path = path[:-1]
         else:
             add_path = path
-        shared_value = z.get_in(add_path, tree, no_default=False)
+        shared_value = get_in(tree, add_path)
         shared_data[dsu.to_tuple(add_path)] = shared_value
 
     table_body = []
     table_head = [dsu.to_list(k) for k in shared_data.keys()]
-    for i, leaf_item_original in enumerate(z.get_in(longest_dict_path, tree)):
+
+    for i, leaf_item_original in enumerate(flatten(get_in(tree, longest_dict_path))):
         leaf_item = shared_data.copy()
         for leaf_key, leaf_val in leaf_item_original.items():
             full_leaf_key = dsu.to_tuple(longest_dict_path + [[], leaf_key])

@@ -7,7 +7,6 @@ pkgs.mkShell {
     pkgs.python38Packages.pytest-cov
     pkgs.python38Packages.pytest-html
     pkgs.python38Packages.pytest-watch
-    pkgs.python38Packages.toolz
   ];
 
   shellHook = ''

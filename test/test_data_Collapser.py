@@ -113,7 +113,7 @@ def test_walk_dict_keys():  # MOVEME
     )
 
 def test_nested_collapse():
-    D = {
+    D1 = {
             'shared': {
                 'a': 1,
                 'b': 'C',
@@ -127,7 +127,7 @@ def test_nested_collapse():
                 ]
             },
         }
-    tabularized = Collapser.tree2tabular(D)
+    tabularized = Collapser.tree2tabular(D1)
     TestCase().assertListEqual(
         tabularized,
         [
@@ -137,6 +137,25 @@ def test_nested_collapse():
             [1, 'C', ['e', 'f'], 123, 'foo'],
             [1, 'C', ['e', 'f'], 456, 'bar'],
             [1, 'C', ['e', 'f'], 789, 'baz'],
+        ]
+    )
+
+
+    D2 = {
+            'a': [
+                {'b': [
+                    {'c': 1},
+                    {'c': 2},
+                ]}
+            ],
+        }
+    tabularized = Collapser.tree2tabular(D2)
+    TestCase().assertListEqual(
+        tabularized,
+        [
+            [ ['a', [], 'b', [], 'c'], ],
+            [1],
+            [2],
         ]
     )
 
