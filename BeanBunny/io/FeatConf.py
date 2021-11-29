@@ -230,7 +230,7 @@ conmask_zerothresh_yn
         commentbuf = []
         for line in ls_line:
             line = line.strip()
-            if len(line) is 0 and len(commentbuf) is 0:
+            if len(line) == 0 and len(commentbuf) == 0:
                 continue
             if line.startswith('#'):
                 commentbuf.append(line[2:])

@@ -21,7 +21,7 @@ class XOJFile(object):
         self.pagecount += 1
         self.ls_output.extend([
             '<page width="%s" height="%s">' % (self.width, self.height),
-            (self.pagecount is 1 and self.pdf_filepath is not None \
+            (self.pagecount == 1 and self.pdf_filepath is not None \
                  and '<background type="pdf" domain="absolute" filename="%s" pageno="%s" />' % (self.pdf_filepath, self.pagecount)
                  or '<background type="pdf" pageno="%s" />' % (self.pagecount)),
             '<layer>'])

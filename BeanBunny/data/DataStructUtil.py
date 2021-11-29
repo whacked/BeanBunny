@@ -9,10 +9,12 @@ that
 
 import random
 import string
+import logging
+
 try:
     import faker
 except ImportError as e:
-    print("no `faker`. generate_random_datastruct will not work")
+    logging.warning("no `faker`. generate_random_datastruct will not work")
     faker = None
 
 try:
@@ -71,7 +73,7 @@ try:
 except ImportError as e:
     def smart_dataset_to_table(D):
         return None
-    print("error on import: %s\n%s will not function." % (e, smart_dataset_to_table.__name__))
+    logging.warning("error on import: %s\n%s will not function." % (e, smart_dataset_to_table.__name__))
 
 
 if faker is None:
@@ -269,7 +271,7 @@ def dict_depth(dc, DEPTH = 1):
 
     """
     try:
-        if len(dc) is 0:
+        if len(dc) == 0:
             return 0
     except TypeError:
         return None
@@ -330,7 +332,7 @@ def extract_obj_at_depth_offset(dc, offset = 0):
     """
 
     rtn = []
-    if offset is 0:
+    if offset == 0:
         return [dc]
     else:
         lsnext = []
@@ -360,17 +362,17 @@ def sliding_subset_check(sub, SUP, empty_set = None, tolerate_key_val = None):
         for depth_offset in range(depth_SUP - depth_sub, -1, -1):
             # extract into individual dict at given offset level
             if _DEBUG_LEVEL > 0:
-                print("CHECKING DEPTH", depth_offset, len(extract_obj_at_depth_offset(SUP, depth_offset)))
+                logging.debug("CHECKING DEPTH", depth_offset, len(extract_obj_at_depth_offset(SUP, depth_offset)))
             for extracted_SUP in extract_obj_at_depth_offset(SUP, depth_offset):
                 if depth_offset > 1:
                     if _DEBUG_LEVEL > 0:
-                        print(extracted_SUP)
+                        logging.debug(extracted_SUP)
                 subcheck = is_obj_subset(sub, extracted_SUP, empty_set, tolerate_key_val)
                 if subcheck:
                     if _DEBUG_LEVEL > 0:
-                        print("FOUND SUBSET:")
+                        logging.debug("FOUND SUBSET:")
                         # print(sub)
-                        print("-------------------- AT LAYER %s --------------------" % (depth_offset))
+                        logging.debug("-------------------- AT LAYER %s --------------------" % (depth_offset))
                         # print(extracted_SUP)
                     return subcheck
         return False
@@ -378,7 +380,7 @@ def sliding_subset_check(sub, SUP, empty_set = None, tolerate_key_val = None):
         if depth_sub is None and depth_SUP is not None:
             if sub in SUP:
                 return True
-        print("scalar comparison:", sub, SUP)
+        logging.debug(f'scalar comparison: {sub} / {SUP}')
 
 def is_obj_subset(sub, SUP, empty_set = None, tolerate_key_val = None, depth = 0):
     """
@@ -433,7 +435,7 @@ def is_obj_subset(sub, SUP, empty_set = None, tolerate_key_val = None, depth = 0
     """
 
     if _DEBUG_LEVEL > 0:
-        print(">> " + ("%s> " % depth) * depth, sub, " -- ", SUP)
+        logging.debug(">> " + ("%s> " % depth) * depth, sub, " -- ", SUP)
     if not hasattr(sub, "__iter__") or \
             (not sub and hasattr(sub, "__iter__")):
         if SUP and empty_set and (sub in empty_set):
@@ -607,7 +609,7 @@ class DictGenerator:
 
         def recur(remaining = 0):
 
-            if remaining is 0:
+            if remaining == 0:
                 self.nresponse += 1
                 myd = self.generate_child()
             else:

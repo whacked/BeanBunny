@@ -2,11 +2,12 @@ from collections import Counter, namedtuple, defaultdict
 from functools import wraps
 
 import BeanBunny.data.DataStructUtil as dsu
+import logging
 
 try:
     import pandas as pd
 except Exception:
-    print('could not import pandas, export to dataframe will not work')
+    logging.warning('could not import pandas, export to dataframe will not work')
     pd = None
 
 def cached(func):
@@ -177,7 +178,7 @@ def collapse(D_input, ORD_COLNAME = u'number'):
                     # NOTE `empty_to_none()` below seems to handle appends
                     # of empty iterables into to_recur, so we don't need to
                     # wazawaza iterate over some precomputed dhdr
-                    if len(val) is 0:
+                    if len(val) == 0:
                         # this actually doesn't seem to change anything
                         to_recur.append(RecurStruct([], depth+2, 0, offset_from_previous_depth+idx))
                     else:
@@ -339,7 +340,7 @@ def collapse_2pass(D):
             else:
                 trav_data[tuple(trav_path+[k])] = v
         for k,v in to_recur:
-            if len(v) is 0 and list_depth < max_list_depth:
+            if len(v) == 0 and list_depth < max_list_depth:
                 # WARNING NOTE XXX
                 # risky: assumes successive nested data structs
                 # are ALL dict
