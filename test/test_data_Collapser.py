@@ -4,6 +4,7 @@ from BeanBunny.data import Collapser
 from BeanBunny.data import DataStructUtil as dsu
 import string
 import random
+from unittest import TestCase
 
 try:
     import faker
@@ -58,6 +59,58 @@ def test_1pass_2pass_ideal_equality():
     assert out[0] == out[1]
     print('1pass and 2pass are the same!')
 
+
+def test_simple_collapse():
+    source_data = {
+        'weather': [
+            {'feeling': 'fine', 'celsius': 22},
+            {'feeling': 'hot', 'celsius': 32},
+        ],
+    }
+
+    collapsed = Collapser.collapse(source_data)
+    TestCase().assertListEqual(collapsed, [
+        ['weather', 'celsius', 'feeling',],
+        [1, 22, 'fine'],
+        [2, 32, 'hot'],
+    ])
+
+
+def test_walk_dict_keys():  # MOVEME
+    TestCase().assertListEqual(
+        dsu.walk_dict_keys({
+            'a': {
+                'b': {
+                    'c': 1
+                }
+            },
+            'x': {
+                'y': 2,
+                'z': 3,
+            },
+            'w': [1, 2],
+            '?': [
+                {'QQ': 'PP', 'J': 'j', 'alice': 'apple'},
+                {'QQ': 'TT', 'J': 'k', 'bob': 'banana'},
+            ],
+            '_': {
+                3: [4, 5,],
+                6: 7,
+            }
+        }),
+        [
+            ['a', 'b', 'c'],
+            ['x', 'y'],
+            ['x', 'z'],
+            ['w', []],
+            ['?', [], 'QQ'],    # this order has no guarantee
+            ['?', [], 'J'],
+            ['?', [], 'alice'],
+            ['?', [], 'bob'],
+            ['_', 3, []],
+            ['_', 6],
+        ]
+    )
 
 if __name__ == '__main__':
     test_1pass_2pass_ideal_equality()

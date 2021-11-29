@@ -235,6 +235,41 @@ def recursive_type_compare(d1, d2):
         return type(d1) == type(d2)
 
 
+def to_tuple(lst):  # MOVEME; c/p https://stackoverflow.com/a/27050037
+    return tuple(to_tuple(i) \
+            if isinstance(i, list) else i for i in lst)
+
+def walk_dict_keys(D_orig):
+    all_paths = []
+
+    def recur(D, prefix=None):
+        if isinstance(D, list):
+            #all_paths.append(prefix + [[]])
+            for item in D:
+                recur(item, prefix + [[]])
+        elif isinstance(D, dict):
+            for k in D.keys():
+                if prefix is None:
+                    next_path = []
+                else:
+                    next_path = prefix[:]
+                recur(D[k], next_path + [k])
+        else:
+            all_paths.append(prefix)
+
+    recur(D_orig)
+
+    filtered_paths = []
+    visited = set()
+    for path in all_paths:
+        tuple_fied = to_tuple(path)
+        if tuple_fied in visited:
+            continue
+        visited.add(tuple_fied)
+        filtered_paths.append(path)
+    return filtered_paths
+
+
 def dict_depth(dc, DEPTH = 1):
     """
     how we define depth:
