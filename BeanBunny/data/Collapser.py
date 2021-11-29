@@ -3,6 +3,8 @@ from functools import wraps
 
 import BeanBunny.data.DataStructUtil as dsu
 import logging
+import toolz as z
+
 
 try:
     import pandas as pd
@@ -368,4 +370,50 @@ def collapse_2pass(D):
 def collapse_to_dataframe_2pass(D):
     processed = collapse_2pass(unravel_config(D))
     return pd.DataFrame(processed[1:], columns=processed[0])
+
+
+def tree2tabular(tree):
+    sub_item_paths = dsu.walk_dict_keys(tree)
+
+    # find longest path to an iterable with a sub-key, indicating that it's a dict
+    # ['a', 'b', [], 'c']  --> accept
+    # ['a', 'b', 'd', []]  --> reject
+    ranked_keys = []
+    for path in sub_item_paths:
+        iterable_indexes = [
+            i for i, p in enumerate(path)
+            if isinstance(p, list) and i < len(path) - 1
+        ]
+        if not iterable_indexes:
+            continue
+        ranked_keys.append((iterable_indexes[-1], path))
+    ranked_keys.sort()
+    longest_path = ranked_keys[-1][1]
+    longest_dict_path = longest_path[:-2]  # minus the leaf key and [] placeholder
+
+    shared_data = {}
+    for path in sub_item_paths:
+        if path[:-2] == longest_dict_path:
+            continue
+
+        if isinstance(path[-1], list):
+            add_path = path[:-1]
+        else:
+            add_path = path
+        shared_value = z.get_in(add_path, tree, no_default=False)
+        shared_data[dsu.to_tuple(add_path)] = shared_value
+
+    table_body = []
+    table_head = [dsu.to_list(k) for k in shared_data.keys()]
+    for i, leaf_item_original in enumerate(z.get_in(longest_dict_path, tree)):
+        leaf_item = shared_data.copy()
+        for leaf_key, leaf_val in leaf_item_original.items():
+            full_leaf_key = dsu.to_tuple(longest_dict_path + [[], leaf_key])
+            leaf_item[full_leaf_key] = leaf_val
+            if i == 0:
+                table_head.append(dsu.to_list(full_leaf_key))
+        table_body.append(list(leaf_item.values()))
+
+    table_out = [table_head] + table_body
+    return table_out
 

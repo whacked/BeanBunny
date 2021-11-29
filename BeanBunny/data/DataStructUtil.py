@@ -235,9 +235,13 @@ def recursive_type_compare(d1, d2):
         return type(d1) == type(d2)
 
 
-def to_tuple(lst):  # MOVEME; c/p https://stackoverflow.com/a/27050037
+def to_tuple(lst):   # c/p https://stackoverflow.com/a/27050037
     return tuple(to_tuple(i) \
             if isinstance(i, list) else i for i in lst)
+
+def to_list(lst):
+    return list(to_list(i) \
+            if isinstance(i, tuple) else i for i in lst)
 
 def walk_dict_keys(D_orig):
     all_paths = []

@@ -112,5 +112,34 @@ def test_walk_dict_keys():  # MOVEME
         ]
     )
 
+def test_nested_collapse():
+    D = {
+            'shared': {
+                'a': 1,
+                'b': 'C',
+                'd': ['e', 'f'],
+            },
+            '[complex,key]': {
+                '[more,complex]': [
+                    {'rt': 123, 'r': 'foo'},
+                    {'rt': 456, 'r': 'bar'},
+                    {'rt': 789, 'r': 'baz'},
+                ]
+            },
+        }
+    tabularized = Collapser.tree2tabular(D)
+    TestCase().assertListEqual(
+        tabularized,
+        [
+            # note they key order is not guaranteed
+            # the test order is matched manually
+            [ ['shared', 'a'], ['shared', 'b'], ['shared', 'd'], ['[complex,key]', '[more,complex]', [], 'rt'], ['[complex,key]', '[more,complex]', [], 'r'], ],
+            [1, 'C', ['e', 'f'], 123, 'foo'],
+            [1, 'C', ['e', 'f'], 456, 'bar'],
+            [1, 'C', ['e', 'f'], 789, 'baz'],
+        ]
+    )
+
+
 if __name__ == '__main__':
     test_1pass_2pass_ideal_equality()
