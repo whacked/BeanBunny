@@ -112,7 +112,91 @@ def test_walk_dict_keys():  # MOVEME
         ]
     )
 
+
+def test_get_leafiest_path():
+    assert Collapser.get_leafiest_path(
+        {'a': {'bb': {'ccc': 'dd'}}}
+    ) == ['a', 'bb', 'ccc']
+
+    assert Collapser.get_leafiest_path(
+        {'asdf': [
+            {'foo': [
+                {'bar': 'baz'},
+                {'bar': 'quux'},
+            ]}]}
+    ) == ['asdf', [], 'foo']
+
+
+def test_simple_nested_collapse():
+    # note they key order is not guaranteed
+    TestCase().assertListEqual(
+        Collapser.tree2tabular({
+            '???': 'everything',
+            'aa': [
+                {'bb': 1, },
+                {'bb': 2, },
+            ]
+        }),
+        [
+            [['???'], ['aa', [], 'bb']],
+            ['everything', 1],
+            ['everything', 2],
+        ]
+    )
+
+
 def test_nested_collapse():
+    TestCase().assertListEqual(
+        Collapser.tree2tabular({
+            'aa': {'bb': {'cc': 'dd'}}
+        }),
+        [
+            [
+                ['aa', 'bb', 'cc'],
+            ],
+            ['dd'],
+        ]
+    )
+
+    # note they key order is not guaranteed
+    TestCase().assertListEqual(
+        Collapser.tree2tabular({
+            'b': [
+                {'c': 12, 'xy': {'z': 'w', '__': 99}},
+                {'c': 34, 'xy': {'z': 't', '__': 87}},
+            ]
+        }),
+        [
+            [
+                ['b', [], 'c'],
+                ['b', [], 'xy', '__'],
+                ['b', [], 'xy', 'z'],
+            ],
+            [12, 99, 'w'],
+            [34, 87, 't'],
+        ]
+    )
+
+    # note they key order is not guaranteed
+    TestCase().assertListEqual(
+        Collapser.tree2tabular({
+            'b': [
+                {'c': 1, 'd': [{'c': 99, 'z': 'a'}] },
+                {'c': 2, 'd': [{'c': 88, 'z': 'b'}, {'c': 77, 'z': 'b'}] },
+            ]
+        }),
+        [
+            [
+                ['b', [], 'c'],
+                ['b', [], 'd', [],'c'],
+                ['b', [], 'd', [],'z'],
+            ],
+            [1, 99, 'a'],
+            [2, 88, 'b'],
+            [2, 77, 'b'],
+        ]
+    )
+
     D1 = {
             'shared': {
                 'a': 1,
@@ -121,9 +205,9 @@ def test_nested_collapse():
             },
             '[complex,key]': {
                 '[more,complex]': [
-                    {'rt': 123, 'r': 'foo'},
-                    {'rt': 456, 'r': 'bar'},
-                    {'rt': 789, 'r': 'baz'},
+                    {'rt': 123, 'r': 'foo', 'e': { 'r': 1 }},
+                    {'rt': 456, 'r': 'bar', 'e': { 'r': 2 }},
+                    {'rt': 789, 'r': 'baz', 'e': { 'r': 3 }},
                 ]
             },
         }
@@ -133,29 +217,14 @@ def test_nested_collapse():
         [
             # note they key order is not guaranteed
             # the test order is matched manually
-            [ ['shared', 'a'], ['shared', 'b'], ['shared', 'd'], ['[complex,key]', '[more,complex]', [], 'rt'], ['[complex,key]', '[more,complex]', [], 'r'], ],
-            [1, 'C', ['e', 'f'], 123, 'foo'],
-            [1, 'C', ['e', 'f'], 456, 'bar'],
-            [1, 'C', ['e', 'f'], 789, 'baz'],
-        ]
-    )
-
-
-    D2 = {
-            'a': [
-                {'b': [
-                    {'c': 1},
-                    {'c': 2},
-                ]}
-            ],
-        }
-    tabularized = Collapser.tree2tabular(D2)
-    TestCase().assertListEqual(
-        tabularized,
-        [
-            [ ['a', [], 'b', [], 'c'], ],
-            [1],
-            [2],
+            [ ['shared', 'a'], ['shared', 'b'], ['shared', 'd'],
+              ['[complex,key]', '[more,complex]', [], 'rt'],
+              ['[complex,key]', '[more,complex]', [], 'r'],
+              ['[complex,key]', '[more,complex]', [], 'e', 'r'],
+              ],
+            [1, 'C', ['e', 'f'], 123, 'foo', 1],
+            [1, 'C', ['e', 'f'], 456, 'bar', 2],
+            [1, 'C', ['e', 'f'], 789, 'baz', 3],
         ]
     )
 

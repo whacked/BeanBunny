@@ -3,6 +3,8 @@ from functools import wraps
 
 import BeanBunny.data.DataStructUtil as dsu
 import logging
+import flatten_dict
+import operator
 
 
 try:
@@ -370,10 +372,10 @@ def collapse_to_dataframe_2pass(D):
     processed = collapse_2pass(unravel_config(D))
     return pd.DataFrame(processed[1:], columns=processed[0])
 
-def flatten(l):  # ref https://stackoverflow.com/a/2158532
+def flatten_list(l):  # ref https://stackoverflow.com/a/2158532
     for el in l:
         if isinstance(el, list):
-            yield from flatten(el)
+            yield from flatten_list(el)
         else:
             yield el
 
@@ -384,28 +386,127 @@ def get_in(D, path):
         return [get_in(sub_D, path[1:]) for sub_D in D]
     return get_in(D.get(path[0]), path[1:])
 
-def tree2tabular(tree):
-    sub_item_paths = dsu.walk_dict_keys(tree)
+def rindex(lst, value):  # https://stackoverflow.com/a/63834895
+    return len(lst) - operator.indexOf(reversed(lst), value) - 1
 
-    # find longest path to an iterable with a sub-key, indicating that it's a dict
-    # ['a', 'b', [], 'c']  --> accept
-    # ['a', 'b', 'd', []]  --> reject
-    ranked_keys = []
-    for path in sub_item_paths:
-        iterable_indexes = [
-            i for i, p in enumerate(path)
-            if isinstance(p, list) and i < len(path) - 1
-        ]
-        if not iterable_indexes:
+def all_same_type(elements):
+    if len(elements) < 2:
+        return True
+    first_element_type = type(elements[0])
+    return all(type(element) == first_element_type for element in elements)
+
+def dict_structurally_equivalent(d1, d2):
+    return set(d1) == set(d2)
+
+def get_leafiest_path(D_orig):
+    paths_of_iterables = set()
+    for path in dsu.walk_dict_keys(D_orig):
+        try:
+            last_list_index = rindex(path, [])
+        except:
+            last_list_index = len(path)
+        paths_of_iterables.add(dsu.to_tuple(path[:last_list_index]))
+
+    ranked_paths = []
+    for tuplefied_path in paths_of_iterables:
+        path = dsu.to_list(tuplefied_path)
+        maybe_nested_elements = get_in(D_orig, path)
+
+        if not isinstance(maybe_nested_elements, (tuple, list, dict)):
+            ranked_paths.append((1, len(tuplefied_path), dsu.to_list(tuplefied_path)))
             continue
-        ranked_keys.append((iterable_indexes[-1], path))
-    ranked_keys.sort()
-    longest_path = ranked_keys[-1][1]
-    longest_dict_path = longest_path[:-2]  # minus the leaf key and [] placeholder
+        
+        if len(maybe_nested_elements) == 0:
+            continue
+
+        if isinstance(maybe_nested_elements[0], list):
+            elements = list(flatten_list(maybe_nested_elements))
+            num_elements = max(len(sub_elements) for sub_elements in maybe_nested_elements)
+        else:
+            elements = maybe_nested_elements
+            num_elements = len(elements)
+        if not isinstance(elements[0], dict):
+            continue
+        if not all_same_type(elements):
+            continue
+        if not all(dict_structurally_equivalent(elements[0], el) for el in elements[1:]):
+            continue
+        # weight first by most leaves
+        # then by highest up the tree
+        ranked_paths.append((num_elements, 1/len(path), path))
+    ranked_paths.sort()
+    if ranked_paths:
+        return ranked_paths[-1][-1]
+    return []
+
+
+def tree2flattend(tree, prefix_path=None, depth=0):
+    if prefix_path is None:
+        prefix_path = []
+    if not isinstance(tree, dict):
+        return [tree]
+    sub_item_paths = dsu.walk_dict_keys(tree)
+    if not sub_item_paths:
+        return []
+    leafiest_path = get_leafiest_path(tree)
 
     shared_data = {}
     for path in sub_item_paths:
-        if path[:-2] == longest_dict_path:
+        if path[:len(leafiest_path)] == leafiest_path:
+            continue
+
+        if isinstance(path[-1], list):
+            add_path = path[:-1]
+        else:
+            add_path = path
+        shared_value = get_in(tree, add_path)
+        shared_data[dsu.to_tuple(prefix_path + add_path)] = shared_value
+
+    out = []
+
+    if not leafiest_path:
+        for k, v in tree.items():
+            thing = {k: tree2flattend(v, prefix_path, depth+1)}
+        return [tree]
+
+    leafiest_root = get_in(tree, leafiest_path)
+    if not isinstance(leafiest_root, (tuple, list, dict)):
+        shared_data[dsu.to_tuple(prefix_path + leafiest_path)] = leafiest_root
+        return [shared_data]
+
+    for i, leaf_item in enumerate(leafiest_root):
+        if not isinstance(leaf_item, dict):
+            continue
+
+        leaf_writeouts = []
+        # leaf_writeout = shared_data.copy()
+        combined_leaf_writeout = {}
+        for leaf_key, leaf_val in leaf_item.items():
+            if isinstance(leaf_val, dict):
+                expanded = flatten_dict.flatten(leaf_val)
+                for expanded_key, expanded_val in expanded.items():
+                    leaf_writeout = shared_data.copy()
+                    subkey = leafiest_path + [[], leaf_key] + list(expanded_key)
+                    leaf_writeout[dsu.to_tuple(subkey)] = expanded_val
+            else:
+                combined_leaf_writeout.update(shared_data.copy())
+                full_leaf_key = dsu.to_tuple(prefix_path + leafiest_path + [[], leaf_key])
+                combined_leaf_writeout[full_leaf_key] = leaf_val
+        if combined_leaf_writeout:
+            leaf_writeouts.append(combined_leaf_writeout)
+        out.extend(leaf_writeouts)
+
+    return out
+
+
+def tree2tabular(tree):
+    if not isinstance(tree, dict):
+        return []
+    leafiest_path = get_leafiest_path(tree)
+
+    shared_data = {}
+    for path in dsu.walk_dict_keys(tree):
+        if leafiest_path and path[:len(leafiest_path)] == leafiest_path:
             continue
 
         if isinstance(path[-1], list):
@@ -415,18 +516,33 @@ def tree2tabular(tree):
         shared_value = get_in(tree, add_path)
         shared_data[dsu.to_tuple(add_path)] = shared_value
 
+    leafiest_root = get_in(tree, leafiest_path)
     table_body = []
+    if not isinstance(leafiest_root, (list, tuple, dict)):
+        table_body.append({
+            dsu.to_tuple(leafiest_path): leafiest_root,
+        })
+    else:
+        for i, leaf_item in enumerate(leafiest_root):
+            if not isinstance(leaf_item, dict):
+                continue
+
+            for sub_element in tree2flattend(leaf_item, leafiest_path + [[]]):
+                table_body.append(sub_element)
+
+    if not table_body:
+        return []
+
     table_head = [dsu.to_list(k) for k in shared_data.keys()]
+    for key in table_body[0].keys():
+        if isinstance(key, tuple):
+            table_head.append(dsu.to_list(key))
+        else:
+            table_head.append([key])
 
-    for i, leaf_item_original in enumerate(flatten(get_in(tree, longest_dict_path))):
-        leaf_item = shared_data.copy()
-        for leaf_key, leaf_val in leaf_item_original.items():
-            full_leaf_key = dsu.to_tuple(longest_dict_path + [[], leaf_key])
-            leaf_item[full_leaf_key] = leaf_val
-            if i == 0:
-                table_head.append(dsu.to_list(full_leaf_key))
-        table_body.append(list(leaf_item.values()))
-
-    table_out = [table_head] + table_body
-    return table_out
+    out = [table_head] + [
+        list(shared_data.values()) + list(row.values())
+        for row in table_body
+    ]
+    return out
 

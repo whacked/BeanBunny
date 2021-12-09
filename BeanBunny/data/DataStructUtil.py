@@ -244,6 +244,8 @@ def to_list(lst):
             if isinstance(i, tuple) else i for i in lst)
 
 def walk_dict_keys(D_orig):
+    if not isinstance(D_orig, dict):
+        return None
     all_paths = []
 
     def recur(D, prefix=None):
